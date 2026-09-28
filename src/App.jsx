@@ -166,10 +166,17 @@ export default function App() {
       msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por preferir a ${parametros.nombreNegocio}! 💙`;
     } 
     else if (type === 'reenganche') {
+      // AQUÍ ESTÁN TUS 5 MENSAJES ALEATORIOS DE REENGANCHE
       const opcionesReenganche = [
         `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas (Netflix, Disney+, Antivirus, etc.), ¡avísanos!\n\nEstaremos muy felices de volver a atenderte con el excelente servicio de siempre. 😊💙`,
+        
         `¡Hola de nuevo! Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activa tu cuenta de *${client.servicio}*. Si deseas retomarla o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🍿`,
-        `¿List@ para maratonear otra vez? 🎬\n\nTe escribimos para recordarte que seguimos ofreciendo *${client.servicio}* y muchas plataformas más con el soporte de siempre. Si te animas a regresar, envíanos un mensajito. ¡Será un gusto atenderte de nuevo! 🙌`
+        
+        `¿List@ para maratonear otra vez? 🎬\n\nTe escribimos para recordarte que seguimos ofreciendo *${client.servicio}* y muchas plataformas más con el soporte de siempre. Si te animas a regresar, envíanos un mensajito. ¡Será un gusto atenderte de nuevo! 🙌`,
+
+        `¡Un saludo especial desde ${parametros.nombreNegocio}! 👋\n\nQueríamos recordarte que seguimos ofreciendo las mejores cuentas de *${client.servicio}* y muchas más opciones. Si extrañas tus series o películas favoritas, ¡escríbenos y te reactivamos de inmediato! ✨`,
+
+        `Esperamos que estés teniendo un excelente día. 😊\n\nHace un tiempo fuiste cliente de *${client.servicio}* y nos encantaría tenerte de vuelta. Siempre tenemos novedades y otras plataformas disponibles para ti. ¡Avísanos si te gustaría retomar tu servicio! 🚀`
       ];
       msg += opcionesReenganche[Math.floor(Math.random() * opcionesReenganche.length)];
     }
@@ -200,6 +207,7 @@ export default function App() {
       }
       msg += opcionesAlerta[Math.floor(Math.random() * opcionesAlerta.length)];
     }
+    
     window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
     setWaActionModal(null);
   };
