@@ -11,7 +11,7 @@ import MasterAccountsList from './components/MasterAccountsList';
 import Configuracion from './components/Configuracion';
 import './index.css';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziVnGSl64CoS4QJTrtPeQESMMHwJ-7n74QHeeCGsidDgpGUD3ubuj5ANv4ONhFbdoX/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxs1iZ4q0mljgda3fRGivWgkgAsO0WrRQxBZjyj-QpEmo4vXIy6C2QoOU7ClZ3Tnras/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
 // Plantillas por defecto para la primera vez
