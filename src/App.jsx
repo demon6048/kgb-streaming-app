@@ -134,15 +134,47 @@ export default function App() {
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
 
-    if (type === 'venta') {
+    if (type === 'ofrecer') {
+      let opcionesOfrecer = [];
+      const nombre = client.nombre;
+      const servicio = client.servicio;
+
+      if (servicio.includes('Gemini')) {
+        opcionesOfrecer = [
+          `¡Hola ${nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.\n\nQueremos presentarte una herramienta que revolucionará tu forma de trabajar: *Gemini Pro*.\n\n✨ *MIRA TODO LO QUE INCLUYE:*\n✅ Gemini Advanced y Flow\n✅ YouTube Premium Lite\n✅ NotebookLM para análisis avanzado de documentos\n✅ 5 TB de almacenamiento en la nube\n\n¿Te gustaría potenciar tu productividad con esta herramienta? ¡Avísanos y te damos todos los detalles! 🚀`,
+          `¡Qué tal ${nombre}! Esperamos que estés muy bien. 🌟\n\nSabemos que necesitas las mejores herramientas para tu trabajo. Por eso te ofrecemos *Gemini Pro*.\n\n🚀 *CARACTERÍSTICAS PREMIUM:*\n🔹 Acceso a IA Avanzada (Gemini Advanced)\n🔹 5 Terabytes de almacenamiento\n🔹 L Notebook incluido\n🔹 YouTube Premium Lite\n\nSi te interesa integrar esta IA a tus proyectos, escríbenos por aquí. ¡Será un gusto asesorarte! 💼`,
+          `¡Hola ${nombre}! 👋\n\n¿Buscando llevar tus proyectos al siguiente nivel? Tenemos disponible *Gemini Pro* con un paquete increíble para ti.\n\n📦 *EL PAQUETE INCLUYE:*\n- Gemini Advanced + Flow\n- 5 TB de Nube Segura\n- L-Notebook / NotebookLM\n- YouTube Premium Lite\n\nSi deseas adquirirlo o tienes alguna duda, estamos aquí para servirte. ¡Potencia tu trabajo hoy! ✨`
+        ];
+      } else if (servicio.includes('ChatGPT')) {
+        opcionesOfrecer = [
+          `¡Hola ${nombre}! 👋 Te saludamos de *${parametros.nombreNegocio}*.\n\nQueremos ofrecerte *ChatGPT Plus*, el asistente de IA definitivo para profesionales.\n\n✨ *INCLUYE:*\n✅ Modelo GPT-4o más rápido e inteligente\n✅ Creación de imágenes con DALL-E 3\n✅ Análisis de datos, Excel y PDFs\n✅ Creación de GPTs personalizados\n\n¿Te interesa conocer nuestros precios? ¡Escríbenos! 🚀`,
+          `¡Qué tal ${nombre}! 🌟\n\nOptimiza tu tiempo y creatividad con *ChatGPT Plus*. Lo tenemos disponible para ti.\n\n🚀 *BENEFICIOS:*\n🔹 Respuestas avanzadas y escritura de código\n🔹 Análisis y resumen de documentos complejos\n🔹 Generador de imágenes DALL-E 3\n\nSi deseas potenciar tu flujo de trabajo, avísanos y te activamos una cuenta al instante. 💼`
+        ];
+      } else if (servicio.includes('Autodesk')) {
+        opcionesOfrecer = [
+          `¡Hola ${nombre}! 👋 Te contactamos de *${parametros.nombreNegocio}*.\n\nTenemos la solución ideal para tus diseños e ingenierías: Licencias de *Autodesk*.\n\n📐 *BENEFICIOS DEL PAQUETE:*\n✅ Todos los programas: AutoCAD, Revit, Civil 3D, 3ds Max, Maya y más\n✅ Licencia Completa (Educativa/Profesional)\n✅ Acceso a la nube de Autodesk\n\n¿Te gustaría un presupuesto para ti o tu equipo? ¡Estamos a tu disposición! 🏗️`,
+          `¡Qué tal ${nombre}! 🌟\n\nLleva tus diseños al nivel profesional con nuestra colección de *Autodesk*. Todo lo que necesitas para tu especialidad.\n\n🚀 *INCLUYE:*\n🔹 AutoCAD, Revit, Civil 3D, Maya\n🔹 Descargas oficiales y directas\n🔹 Soporte técnico garantizado\n\nDéjanos un mensaje si te interesa adquirir este paquete a un excelente precio. 💻`
+        ];
+      } else {
+        opcionesOfrecer = [
+          `¡Hola ${nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${servicio}*.\n\nUna herramienta profesional esencial para optimizar tu trabajo y mejorar tu productividad.\n\n✨ *INCLUYE:*\n✅ Licencia 100% garantizada\n✅ Soporte técnico especializado\n✅ Actualizaciones oficiales\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`,
+          `¡Qué tal ${nombre}! 🌟\n\nQueremos ofrecerte el acceso premium a *${servicio}*. La herramienta que necesitas para llevar tus proyectos al siguiente nivel.\n\nSi estás interesado en adquirir tu licencia oficial, avísanos por aquí y te brindamos toda la información. ¡Será un gusto atenderte! 💼`
+        ];
+      }
+      
+      // Sobrescribe el msg base para usar solo la plantilla de prospección completa
+      msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
+
+    } else if (type === 'venta') {
       msg += `Tu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
       
-      // PLANTILLAS PERSONALIZADAS PARA SOFTWARE
       if (client.categoria === 'software') {
         if (client.servicio.includes('Gemini')) {
-          msg += `✨ *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Gemini Pro y Flow\n✅ YouTube Premium Lite\n✅ L Notebook (NotebookLM)\n✅ 5 TB de almacenamiento en la nube\n\n`;
+          msg += `✨ *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Gemini Pro y Flow\n✅ YouTube Premium Lite\n✅ NotebookLM\n✅ 5 TB de almacenamiento en la nube\n\n`;
+        } else if (client.servicio.includes('ChatGPT')) {
+          msg += `✨ *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ GPT-4o\n✅ DALL-E 3\n✅ Análisis de datos avanzado\n✅ GPTs personalizados\n\n`;
         } else if (client.servicio.includes('Autodesk')) {
-          msg += `📐 *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Todos los programas incluidos (AutoCAD, Revit, Civil 3D, Maya, 3ds Max, etc.)\n✅ Licencia Completa (Educativa/Profesional)\n✅ Acceso a almacenamiento en la nube\n\n`;
+          msg += `📐 *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Todos los programas incluidos (AutoCAD, Revit, Civil 3D, Maya, 3ds Max, etc.)\n✅ Licencia Completa\n✅ Acceso a almacenamiento en la nube\n\n`;
         } else {
           msg += `🚀 *BENEFICIOS INCLUIDOS:*\n✅ Licencia oficial completa\n✅ Soporte garantizado\n✅ Actualizaciones directas\n\n`;
         }
@@ -166,7 +198,6 @@ export default function App() {
              else msg += `🔐 PIN: ${client.pin}\n`;
          }
       }
-      
       msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por confiar tu trabajo y entretenimiento a ${parametros.nombreNegocio}! 💼💙`;
     } 
     else if (type === 'reenganche') {
@@ -246,7 +277,7 @@ export default function App() {
     
     let plataformasDisponibles = [];
     if (isAntivirus) plataformasDisponibles = ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection'];
-    else if (isSoftware) plataformasDisponibles = ['Gemini Pro', 'Autodesk Todos los Programas', 'Adobe Creative Cloud', 'Microsoft 365 Copilot', 'Canva Pro Equipos'];
+    else if (isSoftware) plataformasDisponibles = ['Gemini Pro', 'ChatGPT Plus', 'Autodesk Todos los Programas', 'Adobe Creative Cloud', 'Microsoft 365 Copilot', 'Canva Pro Equipos'];
     else plataformasDisponibles = Array.from(new Set(['Netflix', 'Disney+', 'Max', 'Amazon Prime', 'Spotify', ...cuentasMaster.map(m => m.plataforma)])).sort();
 
     const llavesDisponibles = stockAV.filter(k => k.producto === formData.servicio && k.estado === 'Disponible');
@@ -255,7 +286,7 @@ export default function App() {
       <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-6">
         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[95vh] animate-fadeIn">
           <div className={`p-6 text-white flex justify-between items-center ${isAntivirus ? 'bg-gradient-to-r from-purple-700 to-purple-500' : isSoftware ? 'bg-gradient-to-r from-cyan-700 to-cyan-500' : 'bg-gradient-to-r from-blue-700 to-blue-500'}`}>
-            <h3 className="font-bold text-2xl flex items-center">{isAntivirus ? <ShieldCheck className="w-7 h-7 mr-2"/> : isSoftware ? <Briefcase className="w-7 h-7 mr-2"/> : <MonitorPlay className="w-7 h-7 mr-2"/>} {isAntivirus ? 'Vender Antivirus' : isSoftware ? 'Vender Licencia Profesional' : 'Vender Perfil de Streaming'}</h3>
+            <h3 className="font-bold text-2xl flex items-center">{isAntivirus ? <ShieldCheck className="w-7 h-7 mr-2"/> : isSoftware ? <Briefcase className="w-7 h-7 mr-2"/> : <MonitorPlay className="w-7 h-7 mr-2"/>} {isAntivirus ? 'Vender Antivirus' : isSoftware ? 'Prospecto / Profesional' : 'Vender Perfil de Streaming'}</h3>
             <button onClick={() => setIsClientModalOpen(false)} className="bg-black/20 p-2 rounded-full hover:bg-black/40"><X className="w-6 h-6"/></button>
           </div>
           
@@ -263,7 +294,7 @@ export default function App() {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Smartphone className="w-5 h-5 mr-2 text-slate-400"/> Datos del {isSoftware ? 'Profesional' : 'Cliente'}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="block text-xs font-bold text-slate-500 mb-2">Nombre *</label><input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder={isSoftware ? "Ej. Ing. Carlos Pérez" : "Ej. Carlos Pérez"} /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-2">Nombre *</label><input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder={isSoftware ? "Ej. Ing. Sofía" : "Ej. Carlos Pérez"} /></div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-2">WhatsApp (Sin código) *</label><input type="tel" className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value.replace(/\D/g, '')})} placeholder="999888777" />
                   {existingClient && <div className="text-xs text-orange-600 mt-2 font-bold flex items-center bg-orange-50 p-2 rounded-lg border border-orange-200"><AlertTriangle className="w-4 h-4 mr-1.5"/>Ya registrado: {existingClient.nombre}</div>}
@@ -378,7 +409,7 @@ export default function App() {
           <div className="p-6 border-t bg-white flex flex-col-reverse md:flex-row justify-end gap-3 rounded-b-3xl">
             <button onClick={() => setIsClientModalOpen(false)} className="px-6 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancelar</button>
             <button onClick={() => handleSaveClient(formData, false, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className="px-6 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 disabled:opacity-50">Solo Guardar</button>
-            <button onClick={() => handleSaveClient(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600' : isSoftware ? 'bg-cyan-600' : 'bg-green-500'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50`}><MessageCircle className="w-5 h-5 inline mr-2"/> Guardar y Enviar Accesos</button>
+            <button onClick={() => handleSaveClient(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600' : isSoftware ? 'bg-cyan-600' : 'bg-green-500'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50`}><MessageCircle className="w-5 h-5 inline mr-2"/> Guardar y {isSoftware ? 'Prospectar' : 'Enviar Accesos'}</button>
           </div>
         </div>
       </div>
@@ -395,14 +426,26 @@ export default function App() {
             <button onClick={() => setWaActionModal(null)} className="p-2 bg-slate-100 rounded-full"><X className="w-5 h-5"/></button>
           </div>
           <div className="space-y-3">
-            <button onClick={() => triggerWhatsAppAlert(waActionModal, 'venta')} className="w-full p-4 bg-green-50 border-2 border-green-200 rounded-2xl flex items-center text-left hover:bg-green-100"><div className="bg-green-500 text-white p-2.5 rounded-xl mr-3"><Plus className="w-5 h-5"/></div><div><div className="font-bold text-green-900">Entregar Credenciales</div></div></button>
             
-            {waActionModal.categoria === 'antivirus' && (
-               <button onClick={() => triggerWhatsAppAlert(waActionModal, 'regalo')} className="w-full p-4 bg-pink-50 border-2 border-pink-200 rounded-2xl flex items-center text-left hover:bg-pink-100"><div className="bg-pink-500 text-white p-2.5 rounded-xl mr-3"><Gift className="w-5 h-5"/></div><div><div className="font-bold text-pink-900">Enviar como Regalo 🎁</div></div></button>
+            {waActionModal.categoria === 'software' ? (
+              <>
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'ofrecer')} className="w-full p-4 bg-cyan-50 border-2 border-cyan-200 rounded-2xl flex items-center text-left hover:bg-cyan-100"><div className="bg-cyan-500 text-white p-2.5 rounded-xl mr-3"><Briefcase className="w-5 h-5"/></div><div><div className="font-bold text-cyan-900">Ofrecer / Prospectar 🚀</div></div></button>
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'venta')} className="w-full p-4 bg-green-50 border-2 border-green-200 rounded-2xl flex items-center text-left hover:bg-green-100"><div className="bg-green-500 text-white p-2.5 rounded-xl mr-3"><Plus className="w-5 h-5"/></div><div><div className="font-bold text-green-900">Entregar Credenciales</div></div></button>
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'alerta')} className="w-full p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl flex items-center text-left hover:bg-orange-100"><div className="bg-orange-500 text-white p-2.5 rounded-xl mr-3"><AlertTriangle className="w-5 h-5"/></div><div><div className="font-bold text-orange-900">Alerta Vencimiento</div></div></button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'venta')} className="w-full p-4 bg-green-50 border-2 border-green-200 rounded-2xl flex items-center text-left hover:bg-green-100"><div className="bg-green-500 text-white p-2.5 rounded-xl mr-3"><Plus className="w-5 h-5"/></div><div><div className="font-bold text-green-900">Entregar Credenciales</div></div></button>
+                
+                {waActionModal.categoria === 'antivirus' && (
+                  <button onClick={() => triggerWhatsAppAlert(waActionModal, 'regalo')} className="w-full p-4 bg-pink-50 border-2 border-pink-200 rounded-2xl flex items-center text-left hover:bg-pink-100"><div className="bg-pink-500 text-white p-2.5 rounded-xl mr-3"><Gift className="w-5 h-5"/></div><div><div className="font-bold text-pink-900">Enviar como Regalo 🎁</div></div></button>
+                )}
+
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'alerta')} className="w-full p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl flex items-center text-left hover:bg-orange-100"><div className="bg-orange-500 text-white p-2.5 rounded-xl mr-3"><AlertTriangle className="w-5 h-5"/></div><div><div className="font-bold text-orange-900">Alerta Vencimiento</div></div></button>
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'reenganche')} className="w-full p-4 bg-purple-50 border-2 border-purple-200 rounded-2xl flex items-center text-left hover:bg-purple-100"><div className="bg-purple-500 text-white p-2.5 rounded-xl mr-3"><RefreshCw className="w-5 h-5"/></div><div><div className="font-bold text-purple-900">Reconectar (Ex-Cliente)</div></div></button>
+              </>
             )}
 
-            <button onClick={() => triggerWhatsAppAlert(waActionModal, 'alerta')} className="w-full p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl flex items-center text-left hover:bg-orange-100"><div className="bg-orange-500 text-white p-2.5 rounded-xl mr-3"><AlertTriangle className="w-5 h-5"/></div><div><div className="font-bold text-orange-900">Alerta Vencimiento</div></div></button>
-            <button onClick={() => triggerWhatsAppAlert(waActionModal, 'reenganche')} className="w-full p-4 bg-purple-50 border-2 border-purple-200 rounded-2xl flex items-center text-left hover:bg-purple-100"><div className="bg-purple-500 text-white p-2.5 rounded-xl mr-3"><RefreshCw className="w-5 h-5"/></div><div><div className="font-bold text-purple-900">Reconectar (Ex-Cliente)</div></div></button>
           </div>
         </div>
       </div>
