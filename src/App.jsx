@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu } from 'lucide-react';
+import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase } from 'lucide-react';
 import { getToday, formatDateToLocal, getDaysRemaining, addMonthsToDate } from './utils/helpers';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import StreamingList from './components/StreamingList';
+import SoftwareList from './components/SoftwareList';
 import AntivirusList from './components/AntivirusList';
 import StockAntivirusList from './components/StockAntivirusList';
 import MasterAccountsList from './components/MasterAccountsList';
@@ -36,9 +37,7 @@ export default function App() {
 
   const fetchDataFromSheets = useCallback(async () => {
     if (!SCRIPT_URL || SCRIPT_URL === "TU_URL_DE_APPS_SCRIPT_AQUI") {
-      setSyncStatus('error');
-      showToast('Falta configurar la URL de Google Sheets', 'error');
-      return;
+      setSyncStatus('error'); return;
     }
     setSyncStatus('sincronizando');
     try {
@@ -51,13 +50,8 @@ export default function App() {
         setStockAV(data.stockAV || []);
         if(data.integrantes && data.integrantes.length > 0) setIntegrantes(data.integrantes);
         setSyncStatus('sincronizado');
-      } catch (parseError) {
-        throw new Error('Google bloqueó el acceso (Revisa los permisos)');
-      }
-    } catch (error) {
-      console.error(error);
-      setSyncStatus('error');
-    }
+      } catch (parseError) { throw new Error('Error de Google'); }
+    } catch (error) { setSyncStatus('error'); }
   }, []);
 
   const syncToSheets = async (accion, payload) => {
@@ -71,16 +65,11 @@ export default function App() {
       if(result.exito) { setSyncStatus('sincronizado'); return true; }
       else throw new Error(result.mensaje || 'Error desconocido');
     } catch (error) {
-      console.error(error);
-      setSyncStatus('error'); 
-      showToast(`Error al guardar: ${error.message}`, 'error'); 
-      return false;
+      setSyncStatus('error'); showToast(`Error al guardar: ${error.message}`, 'error'); return false;
     }
   };
 
-  useEffect(() => {
-    fetchDataFromSheets();
-  }, [fetchDataFromSheets]);
+  useEffect(() => { fetchDataFromSheets(); }, [fetchDataFromSheets]);
 
   const processedClients = useMemo(() => {
     return clientes.map(client => {
@@ -95,14 +84,13 @@ export default function App() {
     });
   }, [clientes]);
 
-  const urgentClients = useMemo(() => {
-    return processedClients.filter(c => c.statusInfo.urgency > 0).sort((a, b) => a.daysRemaining - b.daysRemaining);
-  }, [processedClients]);
+  const urgentClients = useMemo(() => { return processedClients.filter(c => c.statusInfo.urgency > 0).sort((a, b) => a.daysRemaining - b.daysRemaining); }, [processedClients]);
 
   const stats = useMemo(() => {
     return {
       streamingPropios: clientes.filter(c => c.categoria === 'streaming' && c.idMaster).length,
       streamingExternos: clientes.filter(c => c.categoria === 'streaming' && !c.idMaster).length,
+      software: clientes.filter(c => c.categoria === 'software').length,
       alertasPropias: urgentClients.filter(c => c.categoria === 'streaming' && c.idMaster && c.daysRemaining >= 0).length,
       alertasExternas: urgentClients.filter(c => c.categoria === 'streaming' && !c.idMaster && c.daysRemaining >= 0).length,
       antivirus: clientes.filter(c => c.categoria === 'antivirus').length,
@@ -147,9 +135,24 @@ export default function App() {
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
 
     if (type === 'venta') {
-      msg += `Tu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n*TUS CREDENCIALES DE ACCESO:*\n`;
+      msg += `Tu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
+      
+      // PLANTILLAS PERSONALIZADAS PARA SOFTWARE
+      if (client.categoria === 'software') {
+        if (client.servicio.includes('Gemini')) {
+          msg += `✨ *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Gemini Pro y Flow\n✅ YouTube Premium Lite\n✅ L Notebook (NotebookLM)\n✅ 5 TB de almacenamiento en la nube\n\n`;
+        } else if (client.servicio.includes('Autodesk')) {
+          msg += `📐 *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Todos los programas incluidos (AutoCAD, Revit, Civil 3D, Maya, 3ds Max, etc.)\n✅ Licencia Completa (Educativa/Profesional)\n✅ Acceso a almacenamiento en la nube\n\n`;
+        } else {
+          msg += `🚀 *BENEFICIOS INCLUIDOS:*\n✅ Licencia oficial completa\n✅ Soporte garantizado\n✅ Actualizaciones directas\n\n`;
+        }
+      }
+
+      msg += `*TUS CREDENCIALES DE ACCESO:*\n`;
       if (client.categoria === 'antivirus') {
          msg += `🛡️ Key de Activación: *${client.proveedorKey}*\n`;
+      } else if (client.categoria === 'software') {
+         msg += `👤 Correo de acceso: ${client.correoExterno}\n🔑 Contraseña: ${client.claveExterna}\n`;
       } else if (isMaster || tipoCuenta === 'master') {
          msg += `📺 Perfil Asignado: P${client.perfil}\n`;
          if (client.pin) {
@@ -163,29 +166,31 @@ export default function App() {
              else msg += `🔐 PIN: ${client.pin}\n`;
          }
       }
-      msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por preferir a ${parametros.nombreNegocio}! 💙`;
+      
+      msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por confiar tu trabajo y entretenimiento a ${parametros.nombreNegocio}! 💼💙`;
     } 
     else if (type === 'reenganche') {
-      // AQUÍ ESTÁN TUS 5 MENSAJES ALEATORIOS DE REENGANCHE
       const opcionesReenganche = [
-        `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas (Netflix, Disney+, Antivirus, etc.), ¡avísanos!\n\nEstaremos muy felices de volver a atenderte con el excelente servicio de siempre. 😊💙`,
-        
-        `¡Hola de nuevo! Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activa tu cuenta de *${client.servicio}*. Si deseas retomarla o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🍿`,
-        
-        `¿List@ para maratonear otra vez? 🎬\n\nTe escribimos para recordarte que seguimos ofreciendo *${client.servicio}* y muchas plataformas más con el soporte de siempre. Si te animas a regresar, envíanos un mensajito. ¡Será un gusto atenderte de nuevo! 🙌`,
-
-        `¡Un saludo especial desde ${parametros.nombreNegocio}! 👋\n\nQueríamos recordarte que seguimos ofreciendo las mejores cuentas de *${client.servicio}* y muchas más opciones. Si extrañas tus series o películas favoritas, ¡escríbenos y te reactivamos de inmediato! ✨`,
-
-        `Esperamos que estés teniendo un excelente día. 😊\n\nHace un tiempo fuiste cliente de *${client.servicio}* y nos encantaría tenerte de vuelta. Siempre tenemos novedades y otras plataformas disponibles para ti. ¡Avísanos si te gustaría retomar tu servicio! 🚀`
+        `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte con el excelente servicio de siempre. 😊💙`,
+        `¡Hola de nuevo! Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activa tu cuenta de *${client.servicio}*. Si deseas retomarla o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🚀`,
+        `Te escribimos para recordarte que seguimos ofreciendo licencias de *${client.servicio}* y muchas plataformas más con el soporte de siempre. Si te animas a regresar, envíanos un mensajito. ¡Será un gusto atenderte de nuevo! 🙌`,
+        `¡Un saludo especial desde ${parametros.nombreNegocio}! 👋\n\nQueríamos recordarte que seguimos ofreciendo las mejores cuentas de *${client.servicio}* y muchas más herramientas. Si necesitas retomar tu trabajo o entretenimiento, ¡escríbenos y te reactivamos de inmediato! ✨`,
+        `Esperamos que estés teniendo un excelente día. 😊\n\nHace un tiempo fuiste cliente de *${client.servicio}* y nos encantaría tenerte de vuelta. Siempre tenemos novedades y plataformas disponibles para ti. ¡Avísanos si te gustaría retomar tu servicio! 🚀`
       ];
       msg += opcionesReenganche[Math.floor(Math.random() * opcionesReenganche.length)];
     }
     else if (type === 'regalo') {
-      msg += `¡Queremos agradecerte por tu constante preferencia! 🎉\n\nComo muestra de nuestro aprecio, te hemos obsequiado una licencia de *${client.servicio}* totalmente gratis para que mantengas tu equipo protegido. 🎁\n\n*TUS DATOS DE ACTIVACIÓN:*\n🛡️ Key de Activación: *${client.proveedorKey || 'Revisa tu bandeja'}*\n📅 Válida hasta: ${fechaVencimiento}\n\n¡Disfruta tu protección y gracias por confiar en ${parametros.nombreNegocio}! 💙`;
+      msg += `¡Queremos agradecerte por tu constante preferencia! 🎉\n\nComo muestra de nuestro aprecio, te hemos obsequiado una licencia de *${client.servicio}* totalmente gratis. 🎁\n\n*TUS DATOS DE ACTIVACIÓN:*\n🛡️ Accesos: Revisa tu correo o plataforma\n📅 Válida hasta: ${fechaVencimiento}\n\n¡Disfruta y gracias por confiar en ${parametros.nombreNegocio}! 💙`;
     }
     else {
       let opcionesAlerta = [];
-      if (isMaster) {
+      if (client.categoria === 'software') {
+         opcionesAlerta = [
+           `Pasábamos a recordarte amablemente que tu licencia profesional de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu cuenta para no perder acceso a tus herramientas de trabajo, escríbenos por aquí y lo gestionamos de inmediato. 💼😊`,
+           `¡Atención con tus herramientas! ⚙️ Tu cuenta de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nPara no interrumpir tus proyectos, confírmanos si gustas renovar y lo preparamos todo. ¡Saludos profesionales!`,
+           `Tu suscripción de *${client.servicio}* está próxima a finalizar el *${fechaVencimiento}*.\n\nAvísanos si te interesa renovar para seguir trabajando con todas las funciones premium. ¡Estamos aquí para ayudarte a impulsar tus proyectos! 🚀`
+         ];
+      } else if (isMaster) {
          const accesoStr = `\n📺 Perfil: P${client.perfil}\n${client.pin ? (client.pin.includes('@') ? `📧 Invitación: ${client.pin}\n` : `🔐 PIN: ${client.pin}\n`) : ''}`;
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nPara tu comodidad, te recordamos tu acceso:${accesoStr}\nSi deseas continuar disfrutando del servicio, con gusto te ayudamos. Estaremos felices de mantenerte con nosotros. 😊🍿`,
@@ -223,41 +228,42 @@ export default function App() {
     if (!isClientModalOpen) return null;
     const isEdit = !!editingClient;
     const isAntivirus = initialCategory === 'antivirus';
+    const isSoftware = initialCategory === 'software';
     
     const [formData, setFormData] = useState(editingClient || { 
-      nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : 'Netflix', 
+      nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? 'Gemini Pro' : 'Netflix', 
       categoria: initialCategory, 
       fechaInicio: getToday().toISOString().split('T')[0], fechaVencimiento: getToday().toISOString().split('T')[0], 
       idIntegrante: integrantes[0]?.id || '', proveedorKey: '', detallesLicencia: '',
       idMaster: '', perfil: '', pin: '', correoExterno: '', claveExterna: '', perfilExterno: ''
     });
 
-    const [tipoCuenta, setTipoCuenta] = useState(editingClient ? (editingClient.idMaster ? 'master' : 'externo') : 'master');
+    const [tipoCuenta, setTipoCuenta] = useState(editingClient ? (editingClient.idMaster ? 'master' : 'externo') : isSoftware ? 'externo' : 'master');
     const [origenKey, setOrigenKey] = useState(editingClient ? 'manual' : 'inventario');
     const [idLlaveSeleccionada, setIdLlaveSeleccionada] = useState('');
 
     const existingClient = clientes.find(c => c.telefono === formData.telefono && (!editingClient || c.id !== editingClient.id));
     
-    const plataformasDisponibles = Array.from(new Set([
-      ...(isAntivirus ? ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection'] : ['Netflix', 'Disney+', 'Max', 'Gemini Pro', 'Amazon Prime', 'Spotify']),
-      ...(!isAntivirus ? cuentasMaster.map(m => m.plataforma) : [])
-    ])).filter(Boolean).sort();
+    let plataformasDisponibles = [];
+    if (isAntivirus) plataformasDisponibles = ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection'];
+    else if (isSoftware) plataformasDisponibles = ['Gemini Pro', 'Autodesk Todos los Programas', 'Adobe Creative Cloud', 'Microsoft 365 Copilot', 'Canva Pro Equipos'];
+    else plataformasDisponibles = Array.from(new Set(['Netflix', 'Disney+', 'Max', 'Amazon Prime', 'Spotify', ...cuentasMaster.map(m => m.plataforma)])).sort();
 
     const llavesDisponibles = stockAV.filter(k => k.producto === formData.servicio && k.estado === 'Disponible');
 
     return (
       <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-6">
         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[95vh] animate-fadeIn">
-          <div className={`p-6 text-white flex justify-between items-center ${isAntivirus ? 'bg-gradient-to-r from-purple-700 to-purple-500' : 'bg-gradient-to-r from-blue-700 to-blue-500'}`}>
-            <h3 className="font-bold text-2xl flex items-center">{isAntivirus ? <ShieldCheck className="w-7 h-7 mr-2"/> : <MonitorPlay className="w-7 h-7 mr-2"/>} {isAntivirus ? 'Vender Antivirus' : 'Vender Perfil de Streaming'}</h3>
+          <div className={`p-6 text-white flex justify-between items-center ${isAntivirus ? 'bg-gradient-to-r from-purple-700 to-purple-500' : isSoftware ? 'bg-gradient-to-r from-cyan-700 to-cyan-500' : 'bg-gradient-to-r from-blue-700 to-blue-500'}`}>
+            <h3 className="font-bold text-2xl flex items-center">{isAntivirus ? <ShieldCheck className="w-7 h-7 mr-2"/> : isSoftware ? <Briefcase className="w-7 h-7 mr-2"/> : <MonitorPlay className="w-7 h-7 mr-2"/>} {isAntivirus ? 'Vender Antivirus' : isSoftware ? 'Vender Licencia Profesional' : 'Vender Perfil de Streaming'}</h3>
             <button onClick={() => setIsClientModalOpen(false)} className="bg-black/20 p-2 rounded-full hover:bg-black/40"><X className="w-6 h-6"/></button>
           </div>
           
           <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 bg-slate-50">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Smartphone className="w-5 h-5 mr-2 text-slate-400"/> Datos del Cliente</h4>
+              <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Smartphone className="w-5 h-5 mr-2 text-slate-400"/> Datos del {isSoftware ? 'Profesional' : 'Cliente'}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="block text-xs font-bold text-slate-500 mb-2">Nombre Cliente *</label><input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej. Carlos Pérez" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-2">Nombre *</label><input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder={isSoftware ? "Ej. Ing. Carlos Pérez" : "Ej. Carlos Pérez"} /></div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-2">WhatsApp (Sin código) *</label><input type="tel" className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value.replace(/\D/g, '')})} placeholder="999888777" />
                   {existingClient && <div className="text-xs text-orange-600 mt-2 font-bold flex items-center bg-orange-50 p-2 rounded-lg border border-orange-200"><AlertTriangle className="w-4 h-4 mr-1.5"/>Ya registrado: {existingClient.nombre}</div>}
@@ -268,19 +274,19 @@ export default function App() {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Server className="w-5 h-5 mr-2 text-slate-400"/> Asignación de Servicio</h4>
                <div className="mb-5">
-                <label className="block text-xs font-bold text-slate-500 mb-2">Plataforma / Producto *</label>
+                <label className="block text-xs font-bold text-slate-500 mb-2">Software / Producto *</label>
                 <select className="w-full border-2 rounded-xl p-3 font-bold bg-slate-50" value={formData.servicio} onChange={e => {setFormData({...formData, servicio: e.target.value, idMaster: '', proveedorKey: ''}); setIdLlaveSeleccionada('');}}>
                   {plataformasDisponibles.map(plat => <option key={plat} value={plat}>{plat}</option>)}
                 </select>
               </div>
 
               {!isAntivirus && (
-                <div className="bg-orange-50 border-2 border-orange-100 rounded-2xl p-5 space-y-4">
+                <div className={`${isSoftware ? 'bg-cyan-50 border-cyan-100' : 'bg-orange-50 border-orange-100'} border-2 rounded-2xl p-5 space-y-4`}>
                   <div className="flex space-x-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                     <button type="button" onClick={() => setTipoCuenta('master')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${tipoCuenta === 'master' ? 'bg-orange-500 text-white' : 'text-slate-500'}`}>Mis Cuentas Máster</button>
-                     <button type="button" onClick={() => { setTipoCuenta('externo'); setFormData({...formData, idMaster: '', perfil: ''}) }} className={`flex-1 py-2 text-sm font-bold rounded-lg ${tipoCuenta === 'externo' ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>Proveedor Externo</button>
+                     <button type="button" onClick={() => setTipoCuenta('externo')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${tipoCuenta === 'externo' ? (isSoftware ? 'bg-cyan-600 text-white' : 'bg-indigo-500 text-white') : 'text-slate-500'}`}>Asignar Acceso / Invitación</button>
+                     {!isSoftware && <button type="button" onClick={() => setTipoCuenta('master')} className={`flex-1 py-2 text-sm font-bold rounded-lg ${tipoCuenta === 'master' ? 'bg-orange-500 text-white' : 'text-slate-500'}`}>Mis Cuentas Máster</button>}
                   </div>
-                  {tipoCuenta === 'master' ? (
+                  {tipoCuenta === 'master' && !isSoftware ? (
                     <div>
                       <select className="w-full border-2 border-orange-200 rounded-xl p-3 font-medium bg-white" value={formData.idMaster} onChange={e => {
                           const mId = e.target.value;
@@ -303,10 +309,10 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
-                       <input type="email" placeholder="Correo Externo" value={formData.correoExterno || ''} onChange={e=>setFormData({...formData, correoExterno: e.target.value})} className="col-span-2 md:col-span-1 border-2 border-indigo-100 rounded-xl p-3" />
-                       <input type="text" placeholder="Clave" value={formData.claveExterna || ''} onChange={e=>setFormData({...formData, claveExterna: e.target.value})} className="col-span-2 md:col-span-1 border-2 border-indigo-100 rounded-xl p-3" />
-                       <input type="text" placeholder="Perfil (Ej. P3)" value={formData.perfilExterno || ''} onChange={e=>setFormData({...formData, perfilExterno: e.target.value})} className="border-2 border-indigo-100 rounded-xl p-3" />
-                       <input type="text" placeholder="PIN / Invitación" value={formData.pin || ''} onChange={e=>setFormData({...formData, pin: e.target.value})} className="border-2 border-indigo-100 rounded-xl p-3 font-bold" />
+                       <input type="email" placeholder="Correo Asignado" value={formData.correoExterno || ''} onChange={e=>setFormData({...formData, correoExterno: e.target.value})} className={`col-span-2 md:col-span-1 border-2 ${isSoftware ? 'border-cyan-200' : 'border-indigo-100'} rounded-xl p-3`} />
+                       <input type="text" placeholder="Clave (Opcional)" value={formData.claveExterna || ''} onChange={e=>setFormData({...formData, claveExterna: e.target.value})} className={`col-span-2 md:col-span-1 border-2 ${isSoftware ? 'border-cyan-200' : 'border-indigo-100'} rounded-xl p-3`} />
+                       {!isSoftware && <input type="text" placeholder="Perfil (Ej. P3)" value={formData.perfilExterno || ''} onChange={e=>setFormData({...formData, perfilExterno: e.target.value})} className="border-2 border-indigo-100 rounded-xl p-3" />}
+                       {!isSoftware && <input type="text" placeholder="PIN / Invitación" value={formData.pin || ''} onChange={e=>setFormData({...formData, pin: e.target.value})} className="border-2 border-indigo-100 rounded-xl p-3 font-bold" />}
                     </div>
                   )}
                 </div>
@@ -372,7 +378,7 @@ export default function App() {
           <div className="p-6 border-t bg-white flex flex-col-reverse md:flex-row justify-end gap-3 rounded-b-3xl">
             <button onClick={() => setIsClientModalOpen(false)} className="px-6 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancelar</button>
             <button onClick={() => handleSaveClient(formData, false, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className="px-6 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 disabled:opacity-50">Solo Guardar</button>
-            <button onClick={() => handleSaveClient(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600' : 'bg-green-500'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50`}><MessageCircle className="w-5 h-5 inline mr-2"/> Guardar y Enviar Accesos</button>
+            <button onClick={() => handleSaveClient(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600' : isSoftware ? 'bg-cyan-600' : 'bg-green-500'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50`}><MessageCircle className="w-5 h-5 inline mr-2"/> Guardar y Enviar Accesos</button>
           </div>
         </div>
       </div>
@@ -449,6 +455,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto h-full">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
+              {activeTab === 'software' && <SoftwareList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'masters' && <MasterAccountsList cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} syncToSheets={syncToSheets} showToast={showToast} syncStatus={syncStatus} />}
               {activeTab === 'stock_av' && <StockAntivirusList stockAV={stockAV} setStockAV={setStockAV} syncToSheets={syncToSheets} showToast={showToast} setConfirmAction={setConfirmAction} syncStatus={syncStatus} />}

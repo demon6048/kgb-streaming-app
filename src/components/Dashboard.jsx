@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Server, Cloud, ShieldCheck, Key, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
+import { Server, Cloud, ShieldCheck, Key, AlertTriangle, RefreshCw, MessageCircle, Briefcase } from 'lucide-react';
 import { formatDateToLocal } from '../utils/helpers';
 
 export default function Dashboard({ stats, urgentClients, setWaActionModal }) {
@@ -9,17 +9,18 @@ export default function Dashboard({ stats, urgentClients, setWaActionModal }) {
     if (filtroAlertas === 'propias') return c.categoria === 'streaming' && c.idMaster && c.daysRemaining >= 0;
     if (filtroAlertas === 'externas') return c.categoria === 'streaming' && !c.idMaster && c.daysRemaining >= 0;
     if (filtroAlertas === 'antivirus') return c.categoria === 'antivirus';
+    if (filtroAlertas === 'software') return c.categoria === 'software';
     if (filtroAlertas === 'inactivos') return c.daysRemaining < 0; 
     return true;
   });
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className={`p-5 rounded-2xl border ${color} flex items-center justify-between shadow-sm bg-white`}>
+    <div className={`p-4 rounded-2xl border ${color} flex items-center justify-between shadow-sm bg-white`}>
       <div>
-        <div className="text-sm font-bold uppercase tracking-wider opacity-80 mb-2">{title}</div>
-        <div className="text-3xl font-black">{value}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-1">{title}</div>
+        <div className="text-2xl font-black">{value}</div>
       </div>
-      {Icon && <Icon className="w-10 h-10 opacity-50" />}
+      {Icon && <Icon className="w-8 h-8 opacity-50" />}
     </div>
   );
 
@@ -27,12 +28,13 @@ export default function Dashboard({ stats, urgentClients, setWaActionModal }) {
     <div className="space-y-8 animate-fadeIn">
       <div><h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1><p className="text-slate-500 mt-1">Resumen general y alertas operativas sincronizadas.</p></div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <StatCard title="Strm. Propias" value={stats.streamingPropios} icon={Server} color="text-blue-700 border-blue-200" />
         <StatCard title="Strm. Externas" value={stats.streamingExternos} icon={Cloud} color="text-indigo-700 border-indigo-200" />
+        <StatCard title="Software Prof." value={stats.software} icon={Briefcase} color="text-cyan-700 border-cyan-200" />
         <StatCard title="Antivirus" value={stats.antivirus} icon={ShieldCheck} color="text-purple-700 border-purple-200" />
-        <StatCard title="Stock Llaves AV" value={stats.llavesDisponibles} icon={Key} color="text-emerald-700 border-emerald-200" />
-        <StatCard title="Alertas Propias" value={stats.alertasPropias} icon={AlertTriangle} color="text-orange-700 border-orange-200" />
+        <StatCard title="Stock Llaves" value={stats.llavesDisponibles} icon={Key} color="text-emerald-700 border-emerald-200" />
+        <StatCard title="Alertas" value={stats.alertasPropias} icon={AlertTriangle} color="text-orange-700 border-orange-200" />
         <StatCard title="Inactivos" value={stats.inactivos} icon={RefreshCw} color="text-slate-600 border-slate-300 bg-slate-50" />
       </div>
       
@@ -43,8 +45,8 @@ export default function Dashboard({ stats, urgentClients, setWaActionModal }) {
             <button onClick={() => setFiltroAlertas('todas')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'todas' ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-600'}`}>Todas</button>
             <button onClick={() => setFiltroAlertas('propias')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'propias' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700'}`}>Propias</button>
             <button onClick={() => setFiltroAlertas('externas')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'externas' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>Externas</button>
+            <button onClick={() => setFiltroAlertas('software')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'software' ? 'bg-cyan-600 text-white' : 'bg-cyan-100 text-cyan-700'}`}>Software</button>
             <button onClick={() => setFiltroAlertas('antivirus')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'antivirus' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700'}`}>Antivirus</button>
-            <button onClick={() => setFiltroAlertas('inactivos')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filtroAlertas === 'inactivos' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700'}`}>Inactivos</button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -58,7 +60,7 @@ export default function Dashboard({ stats, urgentClients, setWaActionModal }) {
                   <td className="px-6 py-4"><div className="font-bold text-slate-900">{client.nombre}</div><div className="text-sm text-slate-500">+{client.telefono}</div></td>
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-800">{client.servicio}</div>
-                    {client.categoria === 'antivirus' ? <div className="text-xs text-purple-600 mt-1 font-bold flex items-center"><ShieldCheck className="w-3 h-3 mr-1"/> Antivirus</div> : client.idMaster ? <div className="text-xs text-blue-600 mt-1 font-bold flex items-center"><Server className="w-3 h-3 mr-1"/> Máster Propia</div> : <div className="text-xs text-indigo-600 mt-1 font-bold flex items-center"><Cloud className="w-3 h-3 mr-1"/> Proveedor Externo</div>}
+                    {client.categoria === 'antivirus' ? <div className="text-xs text-purple-600 mt-1 font-bold flex items-center"><ShieldCheck className="w-3 h-3 mr-1"/> Antivirus</div> : client.categoria === 'software' ? <div className="text-xs text-cyan-600 mt-1 font-bold flex items-center"><Briefcase className="w-3 h-3 mr-1"/> Profesional</div> : client.idMaster ? <div className="text-xs text-blue-600 mt-1 font-bold flex items-center"><Server className="w-3 h-3 mr-1"/> Máster Propia</div> : <div className="text-xs text-indigo-600 mt-1 font-bold flex items-center"><Cloud className="w-3 h-3 mr-1"/> Proveedor Externo</div>}
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium">{formatDateToLocal(client.fechaVencimiento)}</div>

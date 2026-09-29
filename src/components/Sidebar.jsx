@@ -1,5 +1,5 @@
 import React from 'react';
-import { MonitorPlay, X, LayoutDashboard, ShieldCheck, Server, Key } from 'lucide-react';
+import { MonitorPlay, X, LayoutDashboard, ShieldCheck, Server, Key, Briefcase } from 'lucide-react';
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, parametros }) {
   return (
@@ -19,11 +19,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, activeT
           </nav>
         </div>
         <div className="px-6 py-4">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Servicios</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Servicios y Licencias</div>
           <nav className="space-y-2">
             <button onClick={() => { setActiveTab('streaming'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'streaming' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><MonitorPlay className="w-5 h-5" /> <span className="font-medium">Streaming</span></button>
-            <button onClick={() => { setActiveTab('masters'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'masters' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Server className="w-5 h-5" /> <span className="font-medium">Cuentas Máster</span></button>
+            <button onClick={() => { setActiveTab('software'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'software' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Briefcase className="w-5 h-5" /> <span className="font-medium">Software Profesional</span></button>
             <button onClick={() => { setActiveTab('antivirus'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'antivirus' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><ShieldCheck className="w-5 h-5" /> <span className="font-medium">Antivirus</span></button>
+            <button onClick={() => { setActiveTab('masters'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'masters' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Server className="w-5 h-5" /> <span className="font-medium">Cuentas Máster</span></button>
             <button onClick={() => { setActiveTab('stock_av'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'stock_av' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Key className="w-5 h-5" /> <span className="font-medium">Stock Antivirus</span></button>
           </nav>
         </div>
