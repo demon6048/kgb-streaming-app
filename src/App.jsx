@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase } from 'lucide-react';
+import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase, Settings } from 'lucide-react';
 import { getToday, formatDateToLocal, getDaysRemaining, addMonthsToDate } from './utils/helpers';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -8,16 +8,46 @@ import SoftwareList from './components/SoftwareList';
 import AntivirusList from './components/AntivirusList';
 import StockAntivirusList from './components/StockAntivirusList';
 import MasterAccountsList from './components/MasterAccountsList';
+import Configuracion from './components/Configuracion';
 import './index.css';
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
+
+// Plantillas por defecto para la primera vez
+const plantillasDefault = [
+  {
+    id: 'gemini', nombre: 'Gemini Pro',
+    beneficios: '✨ *BENEFICIOS ACTIVOS:*\n✅ Gemini Pro y Flow\n✅ YouTube Premium Lite\n✅ NotebookLM\n✅ 5 TB de almacenamiento',
+    ofrecer: ['¡Hola {nombre}! Te escribimos de KGB Streaming.\n\nPotencia tu productividad con *Gemini Pro*.\n\n✨ Incluye:\n- Gemini Advanced y Flow\n- 5 TB de nube\n- NotebookLM\n\n¡Avísanos si deseas adquirirlo! 🚀', '¿Buscas potenciar tu trabajo {nombre}? *Gemini Pro* es la solución.\n\nTe ofrecemos el paquete completo con Flow, YouTube Lite y más. ¡Escríbenos para detalles! 💼']
+  },
+  {
+    id: 'chatgpt', nombre: 'ChatGPT Plus',
+    beneficios: '✨ *BENEFICIOS ACTIVOS:*\n✅ GPT-4o\n✅ DALL-E 3\n✅ Análisis de datos avanzado',
+    ofrecer: ['¡Hola {nombre}! 🌟\n\nOptimiza tu tiempo con *ChatGPT Plus*. Respuestas avanzadas, DALL-E 3 y más.\n\nSi deseas potenciar tu flujo de trabajo, avísanos y te activamos una cuenta al instante. 💼']
+  },
+  {
+    id: 'autodesk', nombre: 'Autodesk (Completo)',
+    beneficios: '📐 *BENEFICIOS ACTIVOS:*\n✅ Todos los programas incluidos (AutoCAD, Revit, Civil 3D, Maya, etc.)\n✅ Licencia Completa',
+    ofrecer: ['¡Hola {nombre}! 👋\n\nTenemos la solución ideal para tus ingenierías: Licencias de *Autodesk*. Todo incluido (AutoCAD, Revit, Civil 3D).\n\n¿Te gustaría un presupuesto? 🏗️']
+  }
+];
 
 export default function App() {
   const [clientes, setClientes] = useState([]);
   const [cuentasMaster, setCuentasMaster] = useState([]);
   const [stockAV, setStockAV] = useState([]);
   const [integrantes, setIntegrantes] = useState([{ id: 'int1', nombre: 'Equipo Principal', telefono: '51999999999' }]);
+  
+  // ESTADO NUEVO: PLANTILLAS
+  const [plantillas, setPlantillas] = useState(() => {
+    const saved = localStorage.getItem('kgb_plantillas');
+    return saved ? JSON.parse(saved) : plantillasDefault;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kgb_plantillas', JSON.stringify(plantillas));
+  }, [plantillas]);
   
   const [syncStatus, setSyncStatus] = useState('conectando'); 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -130,54 +160,33 @@ export default function App() {
   };
 
   const triggerWhatsAppAlert = (client, type, tipoCuenta) => {
-    let msg = `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
+    let msg = ``;
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
+    
+    // Buscar configuración dinámica si es software
+    const configSoft = plantillas.find(p => p.nombre === client.servicio);
 
     if (type === 'ofrecer') {
       let opcionesOfrecer = [];
-      const nombre = client.nombre;
-      const servicio = client.servicio;
-
-      if (servicio.includes('Gemini')) {
-        opcionesOfrecer = [
-          `¡Hola ${nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.\n\nQueremos presentarte una herramienta que revolucionará tu forma de trabajar: *Gemini Pro*.\n\n✨ *MIRA TODO LO QUE INCLUYE:*\n✅ Gemini Advanced y Flow\n✅ YouTube Premium Lite\n✅ NotebookLM para análisis avanzado de documentos\n✅ 5 TB de almacenamiento en la nube\n\n¿Te gustaría potenciar tu productividad con esta herramienta? ¡Avísanos y te damos todos los detalles! 🚀`,
-          `¡Qué tal ${nombre}! Esperamos que estés muy bien. 🌟\n\nSabemos que necesitas las mejores herramientas para tu trabajo. Por eso te ofrecemos *Gemini Pro*.\n\n🚀 *CARACTERÍSTICAS PREMIUM:*\n🔹 Acceso a IA Avanzada (Gemini Advanced)\n🔹 5 Terabytes de almacenamiento\n🔹 L Notebook incluido\n🔹 YouTube Premium Lite\n\nSi te interesa integrar esta IA a tus proyectos, escríbenos por aquí. ¡Será un gusto asesorarte! 💼`,
-          `¡Hola ${nombre}! 👋\n\n¿Buscando llevar tus proyectos al siguiente nivel? Tenemos disponible *Gemini Pro* con un paquete increíble para ti.\n\n📦 *EL PAQUETE INCLUYE:*\n- Gemini Advanced + Flow\n- 5 TB de Nube Segura\n- L-Notebook / NotebookLM\n- YouTube Premium Lite\n\nSi deseas adquirirlo o tienes alguna duda, estamos aquí para servirte. ¡Potencia tu trabajo hoy! ✨`
-        ];
-      } else if (servicio.includes('ChatGPT')) {
-        opcionesOfrecer = [
-          `¡Hola ${nombre}! 👋 Te saludamos de *${parametros.nombreNegocio}*.\n\nQueremos ofrecerte *ChatGPT Plus*, el asistente de IA definitivo para profesionales.\n\n✨ *INCLUYE:*\n✅ Modelo GPT-4o más rápido e inteligente\n✅ Creación de imágenes con DALL-E 3\n✅ Análisis de datos, Excel y PDFs\n✅ Creación de GPTs personalizados\n\n¿Te interesa conocer nuestros precios? ¡Escríbenos! 🚀`,
-          `¡Qué tal ${nombre}! 🌟\n\nOptimiza tu tiempo y creatividad con *ChatGPT Plus*. Lo tenemos disponible para ti.\n\n🚀 *BENEFICIOS:*\n🔹 Respuestas avanzadas y escritura de código\n🔹 Análisis y resumen de documentos complejos\n🔹 Generador de imágenes DALL-E 3\n\nSi deseas potenciar tu flujo de trabajo, avísanos y te activamos una cuenta al instante. 💼`
-        ];
-      } else if (servicio.includes('Autodesk')) {
-        opcionesOfrecer = [
-          `¡Hola ${nombre}! 👋 Te contactamos de *${parametros.nombreNegocio}*.\n\nTenemos la solución ideal para tus diseños e ingenierías: Licencias de *Autodesk*.\n\n📐 *BENEFICIOS DEL PAQUETE:*\n✅ Todos los programas: AutoCAD, Revit, Civil 3D, 3ds Max, Maya y más\n✅ Licencia Completa (Educativa/Profesional)\n✅ Acceso a la nube de Autodesk\n\n¿Te gustaría un presupuesto para ti o tu equipo? ¡Estamos a tu disposición! 🏗️`,
-          `¡Qué tal ${nombre}! 🌟\n\nLleva tus diseños al nivel profesional con nuestra colección de *Autodesk*. Todo lo que necesitas para tu especialidad.\n\n🚀 *INCLUYE:*\n🔹 AutoCAD, Revit, Civil 3D, Maya\n🔹 Descargas oficiales y directas\n🔹 Soporte técnico garantizado\n\nDéjanos un mensaje si te interesa adquirir este paquete a un excelente precio. 💻`
-        ];
+      
+      if (client.categoria === 'software' && configSoft && configSoft.ofrecer.length > 0) {
+        opcionesOfrecer = configSoft.ofrecer;
       } else {
         opcionesOfrecer = [
-          `¡Hola ${nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${servicio}*.\n\nUna herramienta profesional esencial para optimizar tu trabajo y mejorar tu productividad.\n\n✨ *INCLUYE:*\n✅ Licencia 100% garantizada\n✅ Soporte técnico especializado\n✅ Actualizaciones oficiales\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`,
-          `¡Qué tal ${nombre}! 🌟\n\nQueremos ofrecerte el acceso premium a *${servicio}*. La herramienta que necesitas para llevar tus proyectos al siguiente nivel.\n\nSi estás interesado en adquirir tu licencia oficial, avísanos por aquí y te brindamos toda la información. ¡Será un gusto atenderte! 💼`
+          `¡Hola {nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${client.servicio}*.\n\nUna herramienta esencial para optimizar tu trabajo y mejorar tu productividad.\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`
         ];
       }
       
-      // Sobrescribe el msg base para usar solo la plantilla de prospección completa
       msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
+      // Reemplaza {nombre} por el nombre real del cliente
+      msg = msg.replace(/{nombre}/g, client.nombre);
 
     } else if (type === 'venta') {
-      msg += `Tu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
+      msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\nTu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
       
-      if (client.categoria === 'software') {
-        if (client.servicio.includes('Gemini')) {
-          msg += `✨ *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Gemini Pro y Flow\n✅ YouTube Premium Lite\n✅ NotebookLM\n✅ 5 TB de almacenamiento en la nube\n\n`;
-        } else if (client.servicio.includes('ChatGPT')) {
-          msg += `✨ *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ GPT-4o\n✅ DALL-E 3\n✅ Análisis de datos avanzado\n✅ GPTs personalizados\n\n`;
-        } else if (client.servicio.includes('Autodesk')) {
-          msg += `📐 *BENEFICIOS ACTIVOS EN TU CUENTA:*\n✅ Todos los programas incluidos (AutoCAD, Revit, Civil 3D, Maya, 3ds Max, etc.)\n✅ Licencia Completa\n✅ Acceso a almacenamiento en la nube\n\n`;
-        } else {
-          msg += `🚀 *BENEFICIOS INCLUIDOS:*\n✅ Licencia oficial completa\n✅ Soporte garantizado\n✅ Actualizaciones directas\n\n`;
-        }
+      if (client.categoria === 'software' && configSoft) {
+        msg += `${configSoft.beneficios}\n\n`;
       }
 
       msg += `*TUS CREDENCIALES DE ACCESO:*\n`;
@@ -198,22 +207,22 @@ export default function App() {
              else msg += `🔐 PIN: ${client.pin}\n`;
          }
       }
-      msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por confiar tu trabajo y entretenimiento a ${parametros.nombreNegocio}! 💼💙`;
+      msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por confiar en ${parametros.nombreNegocio}! 💼💙`;
     } 
     else if (type === 'reenganche') {
+      msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
       const opcionesReenganche = [
-        `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte con el excelente servicio de siempre. 😊💙`,
-        `¡Hola de nuevo! Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activa tu cuenta de *${client.servicio}*. Si deseas retomarla o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🚀`,
-        `Te escribimos para recordarte que seguimos ofreciendo licencias de *${client.servicio}* y muchas plataformas más con el soporte de siempre. Si te animas a regresar, envíanos un mensajito. ¡Será un gusto atenderte de nuevo! 🙌`,
-        `¡Un saludo especial desde ${parametros.nombreNegocio}! 👋\n\nQueríamos recordarte que seguimos ofreciendo las mejores cuentas de *${client.servicio}* y muchas más herramientas. Si necesitas retomar tu trabajo o entretenimiento, ¡escríbenos y te reactivamos de inmediato! ✨`,
-        `Esperamos que estés teniendo un excelente día. 😊\n\nHace un tiempo fuiste cliente de *${client.servicio}* y nos encantaría tenerte de vuelta. Siempre tenemos novedades y plataformas disponibles para ti. ¡Avísanos si te gustaría retomar tu servicio! 🚀`
+        `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte. 😊💙`,
+        `Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activa tu cuenta de *${client.servicio}*. Si deseas retomarla o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🚀`,
+        `Te escribimos para recordarte que seguimos ofreciendo licencias de *${client.servicio}* y muchas plataformas más con el soporte de siempre. Si te animas a regresar, envíanos un mensajito. ¡Será un gusto atenderte de nuevo! 🙌`
       ];
       msg += opcionesReenganche[Math.floor(Math.random() * opcionesReenganche.length)];
     }
     else if (type === 'regalo') {
-      msg += `¡Queremos agradecerte por tu constante preferencia! 🎉\n\nComo muestra de nuestro aprecio, te hemos obsequiado una licencia de *${client.servicio}* totalmente gratis. 🎁\n\n*TUS DATOS DE ACTIVACIÓN:*\n🛡️ Accesos: Revisa tu correo o plataforma\n📅 Válida hasta: ${fechaVencimiento}\n\n¡Disfruta y gracias por confiar en ${parametros.nombreNegocio}! 💙`;
+      msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n¡Queremos agradecerte por tu constante preferencia! 🎉\n\nComo muestra de nuestro aprecio, te hemos obsequiado una licencia de *${client.servicio}* totalmente gratis. 🎁\n\n*TUS DATOS DE ACTIVACIÓN:*\n🛡️ Accesos: Revisa tu correo o plataforma\n📅 Válida hasta: ${fechaVencimiento}\n\n¡Disfruta y gracias por confiar en ${parametros.nombreNegocio}! 💙`;
     }
     else {
+      msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
       let opcionesAlerta = [];
       if (client.categoria === 'software') {
          opcionesAlerta = [
@@ -225,20 +234,17 @@ export default function App() {
          const accesoStr = `\n📺 Perfil: P${client.perfil}\n${client.pin ? (client.pin.includes('@') ? `📧 Invitación: ${client.pin}\n` : `🔐 PIN: ${client.pin}\n`) : ''}`;
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nPara tu comodidad, te recordamos tu acceso:${accesoStr}\nSi deseas continuar disfrutando del servicio, con gusto te ayudamos. Estaremos felices de mantenerte con nosotros. 😊🍿`,
-           `¡Aviso de vencimiento! ⚠️ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`,
-           `Esperamos que estés disfrutando de *${client.servicio}*. Te escribimos para recordarte que tu suscripción vence el *${fechaVencimiento}*.\n\nTus credenciales son:${accesoStr}\nAvísanos si deseas realizar la renovación para asegurar tu servicio sin interrupciones. ¡Un saludo! ✨`
+           `¡Aviso de vencimiento! ⚠️ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
          ];
       } else if (client.categoria === 'antivirus') {
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu licencia de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu licencia anual para mantener la seguridad de tu equipo, escríbenos por aquí y con gusto te ayudamos con la actualización. 🛡️😊`,
-           `¡Tu seguridad es importante! 🛡️ Tu licencia de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nNo dejes tu equipo desprotegido. Si gustas renovar, confírmanos y lo gestionamos de inmediato. ¡Saludos!`,
-           `Tu suscripción de *${client.servicio}* está próxima a finalizar el *${fechaVencimiento}*.\n\nAvísanos si te interesa renovar para seguir navegando con total seguridad. ¡Estamos aquí para ayudarte! 💻🔐`
+           `¡Tu seguridad es importante! 🛡️️ Tu licencia de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nNo dejes tu equipo desprotegido. Si gustas renovar, confírmanos y lo gestionamos de inmediato. ¡Saludos!`
          ];
       } else {
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi te gustaría continuar disfrutando del servicio, por favor avísanos por este medio y con mucho gusto te ayudamos a gestionarlo. 😊💙`,
-           `Esperamos que estés disfrutando de tu cuenta. Te recordamos que tu suscripción de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nSi deseas renovar para que no haya interrupciones, déjanos un mensajito por aquí. ¡Será un placer seguir atendiéndote! 🍿🎬`,
-           `¡Hola! Solo queríamos avisarte que tu servicio de *${client.servicio}* finaliza el *${fechaVencimiento}*.\n\nAvísanos si quieres realizar tu renovación y continuar con tu contenido favorito. ¡Que tengas un excelente día! ✨`
+           `Esperamos que estés disfrutando de tu cuenta. Te recordamos que tu suscripción de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nSi deseas renovar para que no haya interrupciones, déjanos un mensajito por aquí. ¡Será un placer seguir atendiéndote! 🍿🎬`
          ];
       }
       msg += opcionesAlerta[Math.floor(Math.random() * opcionesAlerta.length)];
@@ -262,7 +268,7 @@ export default function App() {
     const isSoftware = initialCategory === 'software';
     
     const [formData, setFormData] = useState(editingClient || { 
-      nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? 'Gemini Pro' : 'Netflix', 
+      nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? (plantillas[0]?.nombre || 'Gemini Pro') : 'Netflix', 
       categoria: initialCategory, 
       fechaInicio: getToday().toISOString().split('T')[0], fechaVencimiento: getToday().toISOString().split('T')[0], 
       idIntegrante: integrantes[0]?.id || '', proveedorKey: '', detallesLicencia: '',
@@ -275,9 +281,10 @@ export default function App() {
 
     const existingClient = clientes.find(c => c.telefono === formData.telefono && (!editingClient || c.id !== editingClient.id));
     
+    // DINÁMICO: Lee los nombres de los productos que configuraste
     let plataformasDisponibles = [];
     if (isAntivirus) plataformasDisponibles = ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection'];
-    else if (isSoftware) plataformasDisponibles = ['Gemini Pro', 'ChatGPT Plus', 'Autodesk Todos los Programas', 'Adobe Creative Cloud', 'Microsoft 365 Copilot', 'Canva Pro Equipos'];
+    else if (isSoftware) plataformasDisponibles = plantillas.map(p => p.nombre);
     else plataformasDisponibles = Array.from(new Set(['Netflix', 'Disney+', 'Max', 'Amazon Prime', 'Spotify', ...cuentasMaster.map(m => m.plataforma)])).sort();
 
     const llavesDisponibles = stockAV.filter(k => k.producto === formData.servicio && k.estado === 'Disponible');
@@ -309,6 +316,7 @@ export default function App() {
                 <select className="w-full border-2 rounded-xl p-3 font-bold bg-slate-50" value={formData.servicio} onChange={e => {setFormData({...formData, servicio: e.target.value, idMaster: '', proveedorKey: ''}); setIdLlaveSeleccionada('');}}>
                   {plataformasDisponibles.map(plat => <option key={plat} value={plat}>{plat}</option>)}
                 </select>
+                {isSoftware && plantillas.length === 0 && <p className="text-xs text-red-500 mt-2 font-bold">⚠️️ No has creado ningún producto. Ve a la pestaña "Configuración".</p>}
               </div>
 
               {!isAntivirus && (
@@ -409,7 +417,7 @@ export default function App() {
           <div className="p-6 border-t bg-white flex flex-col-reverse md:flex-row justify-end gap-3 rounded-b-3xl">
             <button onClick={() => setIsClientModalOpen(false)} className="px-6 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancelar</button>
             <button onClick={() => handleSaveClient(formData, false, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className="px-6 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 disabled:opacity-50">Solo Guardar</button>
-            <button onClick={() => handleSaveClient(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600' : isSoftware ? 'bg-cyan-600' : 'bg-green-500'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50`}><MessageCircle className="w-5 h-5 inline mr-2"/> Guardar y {isSoftware ? 'Prospectar' : 'Enviar Accesos'}</button>
+            <button onClick={() => handleSaveClient(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre || (isSoftware && plantillas.length === 0)} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600' : isSoftware ? 'bg-cyan-600' : 'bg-green-500'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50`}><MessageCircle className="w-5 h-5 inline mr-2"/> Guardar y {isSoftware ? 'Prospectar / Vender' : 'Enviar Accesos'}</button>
           </div>
         </div>
       </div>
@@ -502,6 +510,7 @@ export default function App() {
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'masters' && <MasterAccountsList cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} syncToSheets={syncToSheets} showToast={showToast} syncStatus={syncStatus} />}
               {activeTab === 'stock_av' && <StockAntivirusList stockAV={stockAV} setStockAV={setStockAV} syncToSheets={syncToSheets} showToast={showToast} setConfirmAction={setConfirmAction} syncStatus={syncStatus} />}
+              {activeTab === 'configuracion' && <Configuracion plantillas={plantillas} setPlantillas={setPlantillas} showToast={showToast} />}
             </div>
           </main>
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MonitorPlay, X, LayoutDashboard, ShieldCheck, Server, Key, Briefcase } from 'lucide-react';
+import { MonitorPlay, X, LayoutDashboard, ShieldCheck, Server, Key, Briefcase, Settings } from 'lucide-react';
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, parametros }) {
   return (
@@ -26,6 +26,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, activeT
             <button onClick={() => { setActiveTab('antivirus'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'antivirus' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><ShieldCheck className="w-5 h-5" /> <span className="font-medium">Antivirus</span></button>
             <button onClick={() => { setActiveTab('masters'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'masters' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Server className="w-5 h-5" /> <span className="font-medium">Cuentas Máster</span></button>
             <button onClick={() => { setActiveTab('stock_av'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'stock_av' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Key className="w-5 h-5" /> <span className="font-medium">Stock Antivirus</span></button>
+          </nav>
+        </div>
+        <div className="px-6 py-4">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Administración</div>
+          <nav className="space-y-2">
+            <button onClick={() => { setActiveTab('configuracion'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'configuracion' ? 'bg-slate-700 text-white shadow-lg shadow-slate-900/50' : 'hover:bg-slate-800 hover:text-white'}`}><Settings className="w-5 h-5" /> <span className="font-medium">Configuración</span></button>
           </nav>
         </div>
       </div>
