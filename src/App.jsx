@@ -11,7 +11,7 @@ import MasterAccountsList from './components/MasterAccountsList';
 import Configuracion from './components/Configuracion';
 import './index.css';
 
-// URL DE TU API (La que funciona)
+// URL DE TU API
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
@@ -42,7 +42,8 @@ export default function App() {
     if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      const response = await fetch(SCRIPT_URL);
+      // 🔴 AQUÍ ESTÁ LA MAGIA RESTAURADA: ?nocache= obliga a traer datos frescos de Sheets
+      const response = await fetch(`${SCRIPT_URL}?nocache=${new Date().getTime()}`);
       const text = await response.text();
       try {
         const data = JSON.parse(text);
@@ -68,8 +69,7 @@ export default function App() {
       const result = JSON.parse(text);
       if(result.exito || result.status === 'success') { 
         setSyncStatus('sincronizado'); 
-        // Actualizamos los datos para asegurar coherencia
-        fetchDataFromSheets();
+        fetchDataFromSheets(); // Forzamos recarga inmediata tras guardar
         return true; 
       }
       else throw new Error(result.mensaje || 'Error desconocido');
@@ -227,7 +227,7 @@ export default function App() {
          const accesoStr = `\n📺 Perfil: P${client.perfil}\n${client.pin ? (client.pin.includes('@') ? `📧 Invitación: ${client.pin}\n` : `🔐 PIN: ${client.pin}\n`) : ''}`;
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nPara tu comodidad, te recordamos tu acceso:${accesoStr}\nSi deseas continuar disfrutando del servicio, con gusto te ayudamos. Estaremos felices de mantenerte con nosotros. 😊🍿`,
-           `¡Aviso de vencimiento! ⚠️️ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
+           `¡Aviso de vencimiento! ⚠ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
          ];
       } else if (client.categoria === 'antivirus') {
          opcionesAlerta = [
@@ -510,4 +510,4 @@ export default function App() {
       </div>
     </>
   );
-}
+}git add .
