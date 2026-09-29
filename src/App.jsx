@@ -12,7 +12,7 @@ import Configuracion from './components/Configuracion';
 import './index.css';
 
 // ¡ASEGÚRATE DE DEJAR LA URL DE TU API QUE FUNCIONA AQUÍ!
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz95dPdlEWxNNlBsXqF3hOMADPRJizL5_QSrsMuP4ttwlTmArFf-OlU7j14bb2VX9aA/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
 export default function App() {
