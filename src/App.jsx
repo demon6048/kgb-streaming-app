@@ -11,8 +11,8 @@ import MasterAccountsList from './components/MasterAccountsList';
 import Configuracion from './components/Configuracion';
 import './index.css';
 
-// ¡ASEGÚRATE DE DEJAR LA URL DE TU API QUE FUNCIONA AQUÍ!
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz95dPdlEWxNNlBsXqF3hOMADPRJizL5_QSrsMuP4ttwlTmArFf-OlU7j14bb2VX9aA/exec"; 
+// URL de tu API
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
 export default function App() {
@@ -42,7 +42,6 @@ export default function App() {
     if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      // 🔴 SISTEMA ANTI-CACHÉ: Evita que Google te muestre datos viejos obligando una consulta fresca
       const response = await fetch(`${SCRIPT_URL}?nocache=${new Date().getTime()}`);
       const text = await response.text();
       try {
@@ -63,14 +62,12 @@ export default function App() {
       const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        // 🔴 ENVÍO BLINDADO: Manda variables dobles para que funcione con tu API vieja y la nueva
         body: JSON.stringify({ accion: accion, action: accion, datos: payload, payload: payload })
       });
       const text = await response.text();
       const result = JSON.parse(text);
       if(result.exito || result.status === 'success') { 
         setSyncStatus('sincronizado'); 
-        // 🔴 Recarga los datos automáticamente para que no haya que refrescar la página manualmente
         fetchDataFromSheets();
         return true; 
       }
@@ -145,27 +142,39 @@ export default function App() {
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
     
-    const configSoft = plantillas.find(p => p.nombre === client.servicio);
+    // BÚSQUEDA A PRUEBA DE BALAS: Ignora mayúsculas, minúsculas y espacios extra
+    const configSoft = plantillas.find(p => String(p.nombre).trim().toLowerCase() === String(client.servicio).trim().toLowerCase());
 
     if (type === 'ofrecer') {
       let opcionesOfrecer = [];
       
-      if (client.categoria === 'software' && configSoft && configSoft.ofrecer.length > 0) {
-        opcionesOfrecer = configSoft.ofrecer;
-      } else {
+      if (client.categoria === 'software' && configSoft) {
+        // Aseguramos que lea el arreglo sin importar cómo lo haya devuelto Google Sheets
+        let msgs = configSoft.ofrecer;
+        if (typeof msgs === 'string') {
+          try { msgs = JSON.parse(msgs); } catch (e) { msgs = [msgs]; }
+        }
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          opcionesOfrecer = msgs;
+        }
+      }
+      
+      // Fallback por si acaso falló todo o eliminaron los mensajes
+      if (opcionesOfrecer.length === 0) {
         opcionesOfrecer = [
           `¡Hola {nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${client.servicio}*.\n\nUna herramienta esencial para optimizar tu trabajo y mejorar tu productividad.\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`
         ];
       }
       
       msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
-      msg = msg.replace(/{nombre}/g, client.nombre);
+      // Reemplaza el nombre, ignorando si escribiste {Nombre} o {nombre}
+      msg = msg.replace(/{nombre}/gi, client.nombre || 'Cliente');
 
     } else if (type === 'venta') {
       msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\nTu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
       
       if (client.categoria === 'software' && configSoft) {
-        msg += `${configSoft.beneficios}\n\n`;
+        msg += `${configSoft.beneficios || ''}\n\n`;
       }
 
       msg += `*TUS CREDENCIALES DE ACCESO:*\n`;
