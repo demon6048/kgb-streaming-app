@@ -11,7 +11,7 @@ import MasterAccountsList from './components/MasterAccountsList';
 import Configuracion from './components/Configuracion';
 import './index.css';
 
-// URL de tu API
+// URL DE TU API (La que funciona)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
@@ -42,7 +42,7 @@ export default function App() {
     if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      const response = await fetch(`${SCRIPT_URL}?nocache=${new Date().getTime()}`);
+      const response = await fetch(SCRIPT_URL);
       const text = await response.text();
       try {
         const data = JSON.parse(text);
@@ -68,6 +68,7 @@ export default function App() {
       const result = JSON.parse(text);
       if(result.exito || result.status === 'success') { 
         setSyncStatus('sincronizado'); 
+        // Actualizamos los datos para asegurar coherencia
         fetchDataFromSheets();
         return true; 
       }
@@ -142,15 +143,15 @@ export default function App() {
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
     
-    // BÚSQUEDA A PRUEBA DE BALAS: Ignora mayúsculas, minúsculas y espacios extra
-    const configSoft = plantillas.find(p => String(p.nombre).trim().toLowerCase() === String(client.servicio).trim().toLowerCase());
+    // BÚSQUEDA BLINDADA: Ignora espacios, mayúsculas y minúsculas
+    const configSoft = plantillas.find(p => p.nombre && client.servicio && String(p.nombre).trim().toLowerCase() === String(client.servicio).trim().toLowerCase());
 
     if (type === 'ofrecer') {
       let opcionesOfrecer = [];
       
       if (client.categoria === 'software' && configSoft) {
-        // Aseguramos que lea el arreglo sin importar cómo lo haya devuelto Google Sheets
         let msgs = configSoft.ofrecer;
+        // Si por algún motivo Google Sheets lo mandó como texto, lo convertimos
         if (typeof msgs === 'string') {
           try { msgs = JSON.parse(msgs); } catch (e) { msgs = [msgs]; }
         }
@@ -159,15 +160,19 @@ export default function App() {
         }
       }
       
-      // Fallback por si acaso falló todo o eliminaron los mensajes
+      // Si no se encontró plantilla o está vacía, usamos el de respaldo
       if (opcionesOfrecer.length === 0) {
-        opcionesOfrecer = [
-          `¡Hola {nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${client.servicio}*.\n\nUna herramienta esencial para optimizar tu trabajo y mejorar tu productividad.\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`
-        ];
+        if (configSoft && configSoft.beneficios) {
+           opcionesOfrecer = [`¡Hola {nombre}! 👋 Te contactamos para ofrecerte *${client.servicio}*.\n\n${configSoft.beneficios}\n\n¿Te interesa?`];
+        } else {
+           opcionesOfrecer = [
+             `¡Hola {nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${client.servicio}*.\n\nUna herramienta esencial para optimizar tu trabajo y mejorar tu productividad.\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`
+           ];
+        }
       }
       
       msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
-      // Reemplaza el nombre, ignorando si escribiste {Nombre} o {nombre}
+      // Reemplaza el nombre sea como sea que lo hayas escrito en la plantilla ({nombre}, {Nombre}, {NOMBRE})
       msg = msg.replace(/{nombre}/gi, client.nombre || 'Cliente');
 
     } else if (type === 'venta') {
@@ -222,7 +227,7 @@ export default function App() {
          const accesoStr = `\n📺 Perfil: P${client.perfil}\n${client.pin ? (client.pin.includes('@') ? `📧 Invitación: ${client.pin}\n` : `🔐 PIN: ${client.pin}\n`) : ''}`;
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nPara tu comodidad, te recordamos tu acceso:${accesoStr}\nSi deseas continuar disfrutando del servicio, con gusto te ayudamos. Estaremos felices de mantenerte con nosotros. 😊🍿`,
-           `¡Aviso de vencimiento! ⚠️ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
+           `¡Aviso de vencimiento! ⚠️️ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
          ];
       } else if (client.categoria === 'antivirus') {
          opcionesAlerta = [
