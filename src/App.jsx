@@ -11,43 +11,16 @@ import MasterAccountsList from './components/MasterAccountsList';
 import Configuracion from './components/Configuracion';
 import './index.css';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHgsdKiNzBnOfsD9534VsCKlUI90r7_pNK3hagqcZM-UwoPTclMRxQCXJ5Vghc2qMO/exec"; 
+// ¡ASEGÚRATE DE DEJAR LA URL DE TU API QUE FUNCIONA AQUÍ!
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
-
-// Plantillas por defecto para la primera vez
-const plantillasDefault = [
-  {
-    id: 'gemini', nombre: 'Gemini Pro',
-    beneficios: '✨ *BENEFICIOS ACTIVOS:*\n✅ Gemini Pro y Flow\n✅ YouTube Premium Lite\n✅ NotebookLM\n✅ 5 TB de almacenamiento',
-    ofrecer: ['¡Hola {nombre}! Te escribimos de KGB Streaming.\n\nPotencia tu productividad con *Gemini Pro*.\n\n✨ Incluye:\n- Gemini Advanced y Flow\n- 5 TB de nube\n- NotebookLM\n\n¡Avísanos si deseas adquirirlo! 🚀', '¿Buscas potenciar tu trabajo {nombre}? *Gemini Pro* es la solución.\n\nTe ofrecemos el paquete completo con Flow, YouTube Lite y más. ¡Escríbenos para detalles! 💼']
-  },
-  {
-    id: 'chatgpt', nombre: 'ChatGPT Plus',
-    beneficios: '✨ *BENEFICIOS ACTIVOS:*\n✅ GPT-4o\n✅ DALL-E 3\n✅ Análisis de datos avanzado',
-    ofrecer: ['¡Hola {nombre}! 🌟\n\nOptimiza tu tiempo con *ChatGPT Plus*. Respuestas avanzadas, DALL-E 3 y más.\n\nSi deseas potenciar tu flujo de trabajo, avísanos y te activamos una cuenta al instante. 💼']
-  },
-  {
-    id: 'autodesk', nombre: 'Autodesk (Completo)',
-    beneficios: '📐 *BENEFICIOS ACTIVOS:*\n✅ Todos los programas incluidos (AutoCAD, Revit, Civil 3D, Maya, etc.)\n✅ Licencia Completa',
-    ofrecer: ['¡Hola {nombre}! 👋\n\nTenemos la solución ideal para tus ingenierías: Licencias de *Autodesk*. Todo incluido (AutoCAD, Revit, Civil 3D).\n\n¿Te gustaría un presupuesto? 🏗️']
-  }
-];
 
 export default function App() {
   const [clientes, setClientes] = useState([]);
   const [cuentasMaster, setCuentasMaster] = useState([]);
   const [stockAV, setStockAV] = useState([]);
+  const [plantillas, setPlantillas] = useState([]);
   const [integrantes, setIntegrantes] = useState([{ id: 'int1', nombre: 'Equipo Principal', telefono: '51999999999' }]);
-  
-  // ESTADO NUEVO: PLANTILLAS
-  const [plantillas, setPlantillas] = useState(() => {
-    const saved = localStorage.getItem('kgb_plantillas');
-    return saved ? JSON.parse(saved) : plantillasDefault;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('kgb_plantillas', JSON.stringify(plantillas));
-  }, [plantillas]);
   
   const [syncStatus, setSyncStatus] = useState('conectando'); 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -66,21 +39,21 @@ export default function App() {
   };
 
   const fetchDataFromSheets = useCallback(async () => {
-    if (!SCRIPT_URL || SCRIPT_URL === "TU_URL_DE_APPS_SCRIPT_AQUI") {
-      setSyncStatus('error'); return;
-    }
+    if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      const response = await fetch(SCRIPT_URL);
+      // 🔴 SISTEMA ANTI-CACHÉ: Evita que Google te muestre datos viejos obligando una consulta fresca
+      const response = await fetch(`${SCRIPT_URL}?nocache=${new Date().getTime()}`);
       const text = await response.text();
       try {
         const data = JSON.parse(text);
         setClientes(data.clientes || []);
         setCuentasMaster(data.masters || []);
         setStockAV(data.stockAV || []);
+        setPlantillas(data.plantillas || []);
         if(data.integrantes && data.integrantes.length > 0) setIntegrantes(data.integrantes);
         setSyncStatus('sincronizado');
-      } catch (parseError) { throw new Error('Error de Google'); }
+      } catch (parseError) { throw new Error('Error al leer Google'); }
     } catch (error) { setSyncStatus('error'); }
   }, []);
 
@@ -88,14 +61,22 @@ export default function App() {
     setSyncStatus('sincronizando');
     try {
       const response = await fetch(SCRIPT_URL, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ accion, datos: payload })
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        // 🔴 ENVÍO BLINDADO: Manda variables dobles para que funcione con tu API vieja y la nueva
+        body: JSON.stringify({ accion: accion, action: accion, datos: payload, payload: payload })
       });
-      const result = await response.json();
-      if(result.exito) { setSyncStatus('sincronizado'); return true; }
+      const text = await response.text();
+      const result = JSON.parse(text);
+      if(result.exito || result.status === 'success') { 
+        setSyncStatus('sincronizado'); 
+        // 🔴 Recarga los datos automáticamente para que no haya que refrescar la página manualmente
+        fetchDataFromSheets();
+        return true; 
+      }
       else throw new Error(result.mensaje || 'Error desconocido');
     } catch (error) {
-      setSyncStatus('error'); showToast(`Error al guardar: ${error.message}`, 'error'); return false;
+      setSyncStatus('error'); showToast(`Error al sincronizar`, 'error'); return false;
     }
   };
 
@@ -164,7 +145,6 @@ export default function App() {
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
     
-    // Buscar configuración dinámica si es software
     const configSoft = plantillas.find(p => p.nombre === client.servicio);
 
     if (type === 'ofrecer') {
@@ -179,7 +159,6 @@ export default function App() {
       }
       
       msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
-      // Reemplaza {nombre} por el nombre real del cliente
       msg = msg.replace(/{nombre}/g, client.nombre);
 
     } else if (type === 'venta') {
@@ -239,7 +218,7 @@ export default function App() {
       } else if (client.categoria === 'antivirus') {
          opcionesAlerta = [
            `Pasábamos a recordarte amablemente que tu licencia de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu licencia anual para mantener la seguridad de tu equipo, escríbenos por aquí y con gusto te ayudamos con la actualización. 🛡️😊`,
-           `¡Tu seguridad es importante! 🛡️️ Tu licencia de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nNo dejes tu equipo desprotegido. Si gustas renovar, confírmanos y lo gestionamos de inmediato. ¡Saludos!`
+           `¡Tu seguridad es importante! 🛡 Tu licencia de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nNo dejes tu equipo desprotegido. Si gustas renovar, confírmanos y lo gestionamos de inmediato. ¡Saludos!`
          ];
       } else {
          opcionesAlerta = [
@@ -268,7 +247,7 @@ export default function App() {
     const isSoftware = initialCategory === 'software';
     
     const [formData, setFormData] = useState(editingClient || { 
-      nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? (plantillas[0]?.nombre || 'Gemini Pro') : 'Netflix', 
+      nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? (plantillas[0]?.nombre || 'Software') : 'Netflix', 
       categoria: initialCategory, 
       fechaInicio: getToday().toISOString().split('T')[0], fechaVencimiento: getToday().toISOString().split('T')[0], 
       idIntegrante: integrantes[0]?.id || '', proveedorKey: '', detallesLicencia: '',
@@ -281,7 +260,6 @@ export default function App() {
 
     const existingClient = clientes.find(c => c.telefono === formData.telefono && (!editingClient || c.id !== editingClient.id));
     
-    // DINÁMICO: Lee los nombres de los productos que configuraste
     let plataformasDisponibles = [];
     if (isAntivirus) plataformasDisponibles = ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection'];
     else if (isSoftware) plataformasDisponibles = plantillas.map(p => p.nombre);
@@ -316,7 +294,7 @@ export default function App() {
                 <select className="w-full border-2 rounded-xl p-3 font-bold bg-slate-50" value={formData.servicio} onChange={e => {setFormData({...formData, servicio: e.target.value, idMaster: '', proveedorKey: ''}); setIdLlaveSeleccionada('');}}>
                   {plataformasDisponibles.map(plat => <option key={plat} value={plat}>{plat}</option>)}
                 </select>
-                {isSoftware && plantillas.length === 0 && <p className="text-xs text-red-500 mt-2 font-bold">⚠️️ No has creado ningún producto. Ve a la pestaña "Configuración".</p>}
+                {isSoftware && plantillas.length === 0 && <p className="text-xs text-red-500 mt-2 font-bold">⚠ No has creado ningún producto. Ve a la pestaña "Configuración".</p>}
               </div>
 
               {!isAntivirus && (
@@ -510,7 +488,7 @@ export default function App() {
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'masters' && <MasterAccountsList cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} syncToSheets={syncToSheets} showToast={showToast} syncStatus={syncStatus} />}
               {activeTab === 'stock_av' && <StockAntivirusList stockAV={stockAV} setStockAV={setStockAV} syncToSheets={syncToSheets} showToast={showToast} setConfirmAction={setConfirmAction} syncStatus={syncStatus} />}
-              {activeTab === 'configuracion' && <Configuracion plantillas={plantillas} setPlantillas={setPlantillas} showToast={showToast} />}
+              {activeTab === 'configuracion' && <Configuracion plantillas={plantillas} setPlantillas={setPlantillas} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
             </div>
           </main>
         </div>
