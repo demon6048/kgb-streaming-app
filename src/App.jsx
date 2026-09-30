@@ -11,8 +11,8 @@ import MasterAccountsList from './components/MasterAccountsList';
 import Configuracion from './components/Configuracion';
 import './index.css';
 
-// URL DE TU API
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhOTgOljKhvInc-Siulu1jd5GjhSPQQtDh1PNVrfTq7qccHnFeX-cMhBTzc9ut73I/exec"; 
+// 🔴 ¡NUEVA API OFICIAL VINCULADA!
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBFTTZ3UyiIB_lh9nZ1zagAJ6-ylxfQUvRKPkJMC_MIvkJUjIy/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
 export default function App() {
@@ -42,7 +42,6 @@ export default function App() {
     if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      // 🔴 AQUÍ ESTÁ LA MAGIA RESTAURADA: ?nocache= obliga a traer datos frescos de Sheets
       const response = await fetch(`${SCRIPT_URL}?nocache=${new Date().getTime()}`);
       const text = await response.text();
       try {
@@ -69,7 +68,7 @@ export default function App() {
       const result = JSON.parse(text);
       if(result.exito || result.status === 'success') { 
         setSyncStatus('sincronizado'); 
-        fetchDataFromSheets(); // Forzamos recarga inmediata tras guardar
+        fetchDataFromSheets();
         return true; 
       }
       else throw new Error(result.mensaje || 'Error desconocido');
@@ -143,7 +142,6 @@ export default function App() {
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
     
-    // BÚSQUEDA BLINDADA: Ignora espacios, mayúsculas y minúsculas
     const configSoft = plantillas.find(p => p.nombre && client.servicio && String(p.nombre).trim().toLowerCase() === String(client.servicio).trim().toLowerCase());
 
     if (type === 'ofrecer') {
@@ -151,7 +149,6 @@ export default function App() {
       
       if (client.categoria === 'software' && configSoft) {
         let msgs = configSoft.ofrecer;
-        // Si por algún motivo Google Sheets lo mandó como texto, lo convertimos
         if (typeof msgs === 'string') {
           try { msgs = JSON.parse(msgs); } catch (e) { msgs = [msgs]; }
         }
@@ -160,7 +157,6 @@ export default function App() {
         }
       }
       
-      // Si no se encontró plantilla o está vacía, usamos el de respaldo
       if (opcionesOfrecer.length === 0) {
         if (configSoft && configSoft.beneficios) {
            opcionesOfrecer = [`¡Hola {nombre}! 👋 Te contactamos para ofrecerte *${client.servicio}*.\n\n${configSoft.beneficios}\n\n¿Te interesa?`];
@@ -172,7 +168,6 @@ export default function App() {
       }
       
       msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
-      // Reemplaza el nombre sea como sea que lo hayas escrito en la plantilla ({nombre}, {Nombre}, {NOMBRE})
       msg = msg.replace(/{nombre}/gi, client.nombre || 'Cliente');
 
     } else if (type === 'venta') {
@@ -510,4 +505,4 @@ export default function App() {
       </div>
     </>
   );
-}git add .
+}
