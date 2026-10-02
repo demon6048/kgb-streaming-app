@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase, Settings, Edit } from 'lucide-react';
+import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase, Settings, Edit, Star, HeartHandshake } from 'lucide-react';
 import { getToday, formatDateToLocal, getDaysRemaining, addMonthsToDate } from './utils/helpers';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -32,6 +32,10 @@ export default function App() {
   const [editingClient, setEditingClient] = useState(null);
   const [initialCategory, setInitialCategory] = useState('streaming');
   const [waActionModal, setWaActionModal] = useState(null);
+
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
+  const [giftClientTarget, setGiftClientTarget] = useState(null);
+  const [isAsiduo, setIsAsiduo] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -135,6 +139,56 @@ export default function App() {
        }
     }
     if (sendWhatsApp) triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta);
+  };
+
+  const handleGiveGift = async (client, selectedKeyId, asiduo) => {
+    const key = stockAV.find(k => k.id === selectedKeyId);
+    if (!key) return showToast('Licencia no encontrada', 'error');
+
+    setSyncStatus('sincronizando');
+    setIsGiftModalOpen(false);
+
+    const fechaInicio = getToday().toISOString().split('T')[0];
+    const fechaVencimiento = addMonthsToDate(fechaInicio, 1);
+
+    const newClient = {
+      id: `C_GIFT_${Date.now()}`,
+      nombre: client.nombre,
+      telefono: client.telefono,
+      servicio: 'ESET Mobile (Regalo)',
+      categoria: 'antivirus',
+      fechaInicio: fechaInicio,
+      fechaVencimiento: fechaVencimiento,
+      idIntegrante: client.idIntegrante || integrantes[0]?.id || '',
+      proveedorKey: key.llave,
+      detallesLicencia: 'Regalo 1 Mes de Fidelización',
+      idMaster: '', perfil: '', pin: '', correoExterno: '', claveExterna: '', perfilExterno: ''
+    };
+
+    const updatedKey = { ...key, estado: 'Usada', idCliente: newClient.id };
+
+    setClientes(prev => [newClient, ...prev]);
+    setStockAV(prev => prev.map(k => k.id === selectedKeyId ? updatedKey : k));
+
+    await syncToSheets('guardarCliente', newClient);
+    await syncToSheets('guardarLlave', updatedKey);
+    
+    showToast('Regalo registrado en Sheets');
+
+    let msg = `¡Hola ${client.nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.\n\n`;
+    msg += `¡Queremos agradecerte por tu constante preferencia! 🎉 Como muestra de nuestro aprecio, te hemos obsequiado una licencia Premium de *ESET Antivirus para tu celular* por 1 mes, totalmente GRATIS. 🎁\n\n`;
+    msg += `*INSTRUCCIONES DE ACTIVACIÓN:*\n`;
+    msg += `1️⃣ Entra a la Play Store o App Store y descarga la aplicación *ESET Mobile Security*.\n`;
+    msg += `2️⃣ Abre la app, omite los pasos iniciales y ve a la opción de 'Suscripción' o 'Ingresar clave'.\n`;
+    msg += `3️⃣ Pega este código de activación: *${key.llave}*\n\n`;
+    msg += `📅 Válida hasta: ${formatDateToLocal(fechaVencimiento)}\n\n`;
+    if (asiduo) {
+      msg += `💡 *Recuerda:* Como eres un cliente asiduo, ¡no te olvides de reclamar tu clave cada mes!\n\n`;
+    }
+    msg += `¡Disfruta tu regalo y gracias por confiar en KGB Streaming! 💙`;
+
+    // encodeURIComponent garantiza que los emojis se envíen perfectamente sin signos de interrogación
+    window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const triggerWhatsAppAlert = (client, type, tipoCuenta) => {
@@ -472,6 +526,102 @@ export default function App() {
     );
   };
 
+  const CampanasList = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    // Filtramos para asegurar que no haya clientes duplicados o vacíos, y buscamos
+    const filtered = processedClients.filter(c => c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || c.telefono?.includes(searchTerm));
+
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800 flex items-center"><Gift className="w-8 h-8 mr-3 text-pink-500"/> Campañas y Fidelización</h2>
+          <p className="text-slate-500 mt-1">Historial unificado de todos tus clientes para enviar regalos y promociones.</p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+           <div className="relative">
+             <Search className="w-5 h-5 absolute left-4 top-3 text-slate-400" />
+             <input type="text" placeholder="Buscar cliente en toda la base (Streaming, Software, Antivirus)..." className="w-full pl-12 pr-4 py-3 border-2 border-slate-100 rounded-xl bg-slate-50 focus:border-pink-500 outline-none font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+           </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                  <th className="p-4">Cliente Unificado</th><th className="p-4">Servicio Actual</th><th className="p-4">Vencimiento</th><th className="p-4 text-center">Fidelización</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map(client => (
+                  <tr key={client.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-4">
+                      <div className="font-bold text-slate-800">{client.nombre}</div>
+                      <div className="text-xs text-slate-500 font-mono mt-0.5">+{client.telefono}</div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`inline-flex px-2 py-1 rounded-md text-xs font-bold ${client.categoria === 'antivirus' ? 'bg-purple-100 text-purple-700' : client.categoria === 'software' ? 'bg-cyan-100 text-cyan-700' : 'bg-blue-100 text-blue-700'}`}>{client.servicio}</span>
+                    </td>
+                    <td className="p-4">
+                      <div className="font-medium text-slate-700">{formatDateToLocal(client.fechaVencimiento)}</div>
+                    </td>
+                    <td className="p-4 text-center">
+                      <button onClick={() => { setGiftClientTarget(client); setIsAsiduo(false); setIsGiftModalOpen(true); }} className="px-4 py-2 bg-pink-100 text-pink-700 hover:bg-pink-200 rounded-xl font-bold flex items-center mx-auto transition-colors"><Gift className="w-4 h-4 mr-2"/> Regalar ESET</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const GiftModal = () => {
+    if (!isGiftModalOpen || !giftClientTarget) return null;
+    const llavesRegalo = stockAV.filter(k => k.estado === 'Disponible');
+    const [selectedKey, setSelectedKey] = useState(llavesRegalo[0]?.id || '');
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-fadeIn">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-black text-slate-800 flex items-center"><Gift className="w-6 h-6 mr-2 text-pink-500"/> Regalar Antivirus (1 Mes)</h3>
+            <button onClick={() => setIsGiftModalOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><X className="w-5 h-5"/></button>
+          </div>
+          
+          <div className="space-y-5">
+            <div className="bg-pink-50 p-4 rounded-xl border border-pink-100">
+               <p className="text-sm text-pink-800 font-medium">Vas a obsequiar 1 Mes de ESET a <strong className="font-black">{giftClientTarget.nombre}</strong> (+{giftClientTarget.telefono}).</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">Licencia a obsequiar ({llavesRegalo.length} Libres)</label>
+              <select className="w-full border-2 rounded-xl p-3 font-medium bg-slate-50" value={selectedKey} onChange={e => setSelectedKey(e.target.value)}>
+                 {llavesRegalo.length === 0 && <option value="">⚠️ No tienes llaves disponibles</option>}
+                 {llavesRegalo.map(k => <option key={k.id} value={k.id}>{k.llave} ({k.producto})</option>)}
+              </select>
+            </div>
+
+            <div className="flex items-center p-4 border-2 border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setIsAsiduo(!isAsiduo)}>
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center mr-3 transition-colors ${isAsiduo ? 'bg-pink-500' : 'bg-slate-200'}`}>
+                {isAsiduo && <Check className="w-4 h-4 text-white" />}
+              </div>
+              <div>
+                <div className="font-bold text-slate-700 flex items-center">Es cliente asiduo <Star className="w-4 h-4 ml-1 text-yellow-500 fill-yellow-500"/></div>
+                <div className="text-xs text-slate-500 mt-0.5">Añade: "reclama tu clave cada mes".</div>
+              </div>
+            </div>
+
+            <button disabled={syncStatus === 'sincronizando' || !selectedKey} onClick={() => handleGiveGift(giftClientTarget, selectedKey, isAsiduo)} className="w-full py-3.5 bg-pink-600 text-white rounded-xl font-bold shadow-lg hover:bg-pink-700 disabled:opacity-50 flex justify-center items-center transition-colors">
+              <MessageCircle className="w-5 h-5 mr-2"/> Enviar Regalo por WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <style>{`.animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
@@ -483,15 +633,28 @@ export default function App() {
               <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mr-3 text-slate-500 hover:bg-slate-100 p-1 rounded-md">
                 <Menu className="w-6 h-6" />
               </button>
-              <div className="font-bold text-slate-800 md:text-slate-400 uppercase text-xs md:text-sm truncate">
+              <div className="font-bold text-slate-800 md:text-slate-400 uppercase text-xs md:text-sm truncate mr-4">
                 <span className="hidden sm:inline">Plataforma Operativa - </span>KGB Streaming
               </div>
+              
+              {/* Botón de acceso rápido a Campañas en el header superior */}
+              <button onClick={() => setActiveTab('campanas')} className={`hidden md:flex items-center px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${activeTab === 'campanas' ? 'bg-pink-100 text-pink-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                <Gift className="w-4 h-4 mr-1.5"/> Campañas y Regalos
+              </button>
             </div>
-            <SyncIndicator />
+            
+            <div className="flex items-center space-x-3">
+               {/* Botón móvil de acceso rápido a Campañas */}
+               <button onClick={() => setActiveTab('campanas')} className={`md:hidden flex items-center px-2 py-1.5 rounded-lg text-xs font-bold transition-colors ${activeTab === 'campanas' ? 'bg-pink-100 text-pink-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                 <Gift className="w-4 h-4 mr-1"/> Regalos
+               </button>
+               <SyncIndicator />
+            </div>
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-7xl mx-auto h-full">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} />}
+              {activeTab === 'campanas' && <CampanasList />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'software' && <SoftwareList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
@@ -501,7 +664,7 @@ export default function App() {
             </div>
           </main>
         </div>
-        <ClientFormModal /><WaActionModal /><ToastContainer /><ConfirmModal />
+        <ClientFormModal /><WaActionModal /><GiftModal /><ToastContainer /><ConfirmModal />
       </div>
     </>
   );
