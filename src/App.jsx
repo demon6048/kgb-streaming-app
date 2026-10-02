@@ -929,8 +929,18 @@ export default function App() {
     await syncToSheets('guardarLlave', updatedKey);
     showToast('Regalo registrado');
 
-    let msg = `¡Hola ${client.nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.\n\nComo muestra de nuestro aprecio, te hemos obsequiado una licencia Premium de *ESET Antivirus* por 1 mes, totalmente GRATIS. 🎁\n\n*INSTRUCCIONES:*\n1️⃣ Descarga ESET Mobile Security.\n2️⃣ Ingresa esta clave: *${key.llave}*\n\n📅 Válida hasta: ${formatDateToLocal(fechaVencimiento)}\n`;
-    if (asiduo) msg += `\n💡 Como eres cliente asiduo, ¡reclama tu clave cada mes!\n`;
+    let msg = `¡Hola ${client.nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.\n\n`;
+    msg += `¡Queremos agradecerte por tu constante preferencia! 🎉\n`;
+    msg += `Como muestra de nuestro aprecio, te hemos obsequiado una licencia de *ESET Mobile Security Premium* por 1 mes, totalmente GRATIS. 🎁📱 *(¡Exclusiva para proteger tu celular!)*\n\n`;
+    msg += `*TU LICENCIA DE REGALO:*\n`;
+    msg += `🛡️ Clave de Activación: *${key.llave}*\n`;
+    msg += `📅 Válida hasta: ${formatDateToLocal(fechaVencimiento)}\n\n`;
+    msg += `*GUÍA DE INSTALACIÓN:*\n`;
+    msg += `1️⃣ Entra a la tienda de aplicaciones de tu celular (Play Store / App Store) y descarga *ESET Mobile Security*.\n`;
+    msg += `2️⃣ Abre la app, omite los pasos iniciales y busca la opción de 'Suscripción' o 'Ingresar clave de licencia'.\n`;
+    msg += `3️⃣ Pega tu clave de activación y ¡listo!\n`;
+    if (asiduo) msg += `\n💡 *Como eres cliente asiduo, ¡recuerda reclamar tu clave cada mes!*\n`;
+    
     window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
