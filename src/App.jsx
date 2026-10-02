@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase, Settings } from 'lucide-react';
+import { MonitorPlay, X, Server, RefreshCw, AlertTriangle, Cloud, MessageCircle, ShieldCheck, Plus, Search, Smartphone, Check, Calendar, Key, Gift, Menu, Briefcase, Settings, Edit } from 'lucide-react';
 import { getToday, formatDateToLocal, getDaysRemaining, addMonthsToDate } from './utils/helpers';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
