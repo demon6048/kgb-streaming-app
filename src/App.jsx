@@ -11,11 +11,8 @@ import './index.css';
 // ==========================================
 // 1. CONFIGURACIÓN Y CONSTANTES
 // ==========================================
-// URL DE TU API DE GOOGLE SHEETS
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBFTTZ3UyiIB_lh9nZ1zagAJ6-ylxfQUvRKPkJMC_MIvkJUjIy/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
-
-// 🔴 CONTRASEÑA DE ACCESO A LA PLATAFORMA
 const ADMIN_PASSWORD = "S15t3w4s4860"; 
 
 // ==========================================
@@ -326,8 +323,11 @@ const CampanasList = ({ processedClients, stockAV, handleGiveGift, triggerWhatsA
 };
 
 const StockAntivirusList = ({ stockAV, setStockAV, syncToSheets, showToast, setConfirmAction, syncStatus }) => {
+  const [isCustomProduct, setIsCustomProduct] = useState(false);
   const [newProduct, setNewProduct] = useState('ESET NOD32 Premium');
   const [keysRaw, setKeysRaw] = useState('');
+
+  const productosSugeridos = Array.from(new Set(['ESET NOD32 Premium', 'ESET Internet Security', 'ESET Mobile Security', 'Kaspersky Plus', 'McAfee Total Protection', ...stockAV.map(k => k.producto)])).filter(Boolean).sort();
 
   const handleAddKeys = async (e) => {
     e.preventDefault();
@@ -364,18 +364,26 @@ const StockAntivirusList = ({ stockAV, setStockAV, syncToSheets, showToast, setC
             <h3 className="font-bold text-slate-800 flex items-center mb-4"><Plus className="w-5 h-5 mr-2 text-emerald-500"/> Agregar Llaves en Masa</h3>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">Producto</label>
-              <select className="w-full border-2 border-emerald-200 rounded-xl p-3 focus:border-emerald-500 font-bold bg-white" value={newProduct} onChange={e=>setNewProduct(e.target.value)}>
-                <option value="ESET NOD32 Premium">ESET NOD32 Premium</option>
-                <option value="ESET Internet Security">ESET Internet Security</option>
-                <option value="Kaspersky Plus">Kaspersky Plus</option>
-                <option value="McAfee Total Protection">McAfee Total Protection</option>
-              </select>
+              {!isCustomProduct ? (
+                <select className="w-full border-2 border-emerald-200 rounded-xl p-3 focus:border-emerald-500 font-bold bg-white" value={newProduct} onChange={e => {
+                  if(e.target.value === 'OTRO') { setIsCustomProduct(true); setNewProduct(''); }
+                  else setNewProduct(e.target.value);
+                }}>
+                  {productosSugeridos.map(p => <option key={p} value={p}>{p}</option>)}
+                  <option value="OTRO">➕ Agregar otro antivirus...</option>
+                </select>
+              ) : (
+                <div className="flex gap-2">
+                  <input type="text" autoFocus required className="w-full border-2 border-emerald-200 rounded-xl p-3 focus:border-emerald-500 font-bold bg-white" value={newProduct} onChange={e=>setNewProduct(e.target.value)} placeholder="Ej. Norton 360" />
+                  <button type="button" onClick={() => {setIsCustomProduct(false); setNewProduct('ESET NOD32 Premium');}} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200"><X className="w-5 h-5"/></button>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">Pega las llaves (Una por línea)</label>
               <textarea required rows="5" className="w-full border-2 border-emerald-200 rounded-xl p-3 font-mono text-sm bg-white focus:border-emerald-500 uppercase" placeholder="AAAA-BBBB-CCCC-DDDD&#10;XXXX-YYYY-ZZZZ-WWWW" value={keysRaw} onChange={e=>setKeysRaw(e.target.value)} />
             </div>
-            <button type="submit" disabled={syncStatus === 'sincronizando' || !keysRaw.trim()} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl p-3 shadow-md flex justify-center items-center transition-colors disabled:opacity-50"><Server className="w-5 h-5 mr-2"/> Guardar Licencias en Bóveda</button>
+            <button type="submit" disabled={syncStatus === 'sincronizando' || !keysRaw.trim() || !newProduct.trim()} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl p-3 shadow-md flex justify-center items-center transition-colors disabled:opacity-50"><Server className="w-5 h-5 mr-2"/> Guardar Licencias en Bóveda</button>
           </form>
         </div>
         <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
@@ -554,33 +562,28 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
 // 5. APLICACIÓN PRINCIPAL (ESTADOS Y LÓGICA)
 // ==========================================
 export default function App() {
-  // 🔴 ESTADOS PARA EL LOGIN Y PRECARGA
   const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('kgb_auth') === 'true');
   const [passwordInput, setPasswordInput] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [loginError, setLoginError] = useState(false);
 
-  // Estados Globales (Base de datos)
   const [clientes, setClientes] = useState([]);
   const [cuentasMaster, setCuentasMaster] = useState([]);
   const [stockAV, setStockAV] = useState([]);
   const [plantillas, setPlantillas] = useState([]);
   const [integrantes, setIntegrantes] = useState([{ id: 'int1', nombre: 'Equipo Principal', telefono: '51999999999' }]);
   
-  // Estados de Interfaz
   const [syncStatus, setSyncStatus] = useState('conectando'); 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  // Estados de Modales
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [initialCategory, setInitialCategory] = useState('streaming');
   const [waActionModal, setWaActionModal] = useState(null);
 
-  // Función de Autenticación
   const handleLogin = (e) => {
     e.preventDefault();
     setIsAuthenticating(true);
@@ -593,7 +596,7 @@ export default function App() {
         setLoginError(true); 
         setIsAuthenticating(false); 
       }
-    }, 2500); 
+    }, 2000); 
   };
 
   const showToast = (message, type = 'success') => {
@@ -605,9 +608,7 @@ export default function App() {
     if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      // Usamos el parametro nocache para asegurar que trae la ultima versión de Google
       const fetchUrl = `${SCRIPT_URL}?nocache=${new Date().getTime()}`;
-      console.log("Iniciando conexión a Base de Datos...");
       const response = await fetch(fetchUrl);
       const text = await response.text();
       try {
@@ -618,13 +619,10 @@ export default function App() {
         setPlantillas(data.plantillas || []);
         if(data.integrantes && data.integrantes.length > 0) setIntegrantes(data.integrantes);
         setSyncStatus('sincronizado');
-        console.log("Sincronización exitosa con Sheets.");
       } catch (parseError) { 
-        console.error("Error al leer JSON desde Google:", text);
         throw new Error('Error al leer Google'); 
       }
     } catch (error) { 
-      console.error("Falla de red en fetchDataFromSheets:", error);
       setSyncStatus('error'); 
     }
   }, []);
@@ -650,7 +648,6 @@ export default function App() {
     }
   };
 
-  // Se lanza la búsqueda de datos sin importar si está logueado, así cuando entra ya están listos
   useEffect(() => { fetchDataFromSheets(); }, [fetchDataFromSheets]);
 
   const processedClients = useMemo(() => {
@@ -699,7 +696,6 @@ export default function App() {
     const isNew = !clientData.id;
     const finalClient = { ...clientData, id: isNew ? `C_${Date.now()}` : clientData.id };
     
-    // Lista de todos los clientes a guardar (el principal + los perfiles adicionales)
     const clientesAGuardar = [finalClient];
 
     perfilesAdicionales.forEach((extraProfile, index) => {
@@ -717,7 +713,6 @@ export default function App() {
        }
     });
 
-    // Guardar en estado local primero
     let newClientesList = [...clientes];
     clientesAGuardar.forEach(c => {
        if (isNew) newClientesList.unshift(c);
@@ -725,7 +720,6 @@ export default function App() {
     });
     setClientes(newClientesList);
 
-    // Guardar en Google Sheets
     for (let c of clientesAGuardar) {
        await syncToSheets('guardarCliente', c);
     }
@@ -776,11 +770,12 @@ export default function App() {
          msg += `🛡️ Key de Activación: *${client.proveedorKey}*\n\n`;
          msg += `*INSTRUCCIONES DE INSTALACIÓN:*\n`;
          
-         if (client.servicio.toLowerCase().includes('mobile')) {
+         const servicioLower = (client.servicio || '').toLowerCase();
+         if (servicioLower.includes('mobile') || servicioLower.includes('celular') || servicioLower.includes('android')) {
             msg += `1️⃣ Entra a la Play Store o App Store en tu celular y descarga la app *ESET Mobile Security*.\n`;
             msg += `2️⃣ Abre la aplicación, omite los pasos iniciales y ve a la opción de 'Suscripción' o 'Ingresar clave de licencia'.\n`;
             msg += `3️⃣ Pega la Key de Activación que te enviamos arriba.\n`;
-         } else if (client.servicio.toLowerCase().includes('eset')) {
+         } else if (servicioLower.includes('eset') || servicioLower.includes('nod32') || servicioLower.includes('internet security')) {
             msg += `1️⃣ Descarga el instalador oficial desde este enlace: https://download.eset.com/com/eset/tools/installers/live_eav/latest/eset_nod32_antivirus_live_installer.exe\n`;
             msg += `2️⃣ Abre el archivo descargado y presiona "Siguiente" hasta que el programa te pida la clave de activación.\n`;
             msg += `3️⃣ Escribe o pega la Key de Activación que te hemos enviado.\n`;
@@ -791,6 +786,30 @@ export default function App() {
       } else if (client.categoria === 'software') {
          msg += `👤 Correo de acceso: ${client.correoExterno}\n🔑 Contraseña: ${client.claveExterna}\n`;
       } else if (isMaster || tipoCuenta === 'master') {
+         const listaParaMsg = arrayClientesMultiples || [client];
+         listaParaMsg.forEach((c, idx) => {
+            msg += `📺 Perfil Asignado: P${c.perfil}\n`;
+            if (c.pin) {
+                if (c.pin.includes('@')) msg += `📧 Invitación: ${c.pin}\n`;
+                else msg += `🔐 PIN: ${c.pin}\n`;
+            }
+            if(idx < listaParaMsg.length - 1) msg += `\n`;
+         });
+      } else if (!isMaster && client.correoExterno) {
+         const listaParaMsg = arrayClientesMultiples || [client];
+         listaParaMsg.forEach((c, idx) => {
+            if(idx === 0) msg += `👤 Correo: ${c.correoExterno}\n🔑 Clave: ${c.claveExterna}\n`;
+            msg += `📺 Perfil: ${c.perfilExterno}\n`;
+            if (c.pin) {
+                if (c.pin.includes('@')) msg += `📧 Invitación: ${c.pin}\n`;
+                else msg += `🔐 PIN: ${c.pin}\n`;
+            }
+            if(idx < listaParaMsg.length - 1) msg += `\n`;
+         });
+      }
+      msg += `\n📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por confiar en ${parametros.nombreNegocio}! 💼💙`;
+    } 
+    else if (type === 'reenganche') {
       msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
       const opcionesReenganche = [
         `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte. 😊💙`,
@@ -824,7 +843,6 @@ export default function App() {
       msg += opcionesAlerta[Math.floor(Math.random() * opcionesAlerta.length)];
     }
     
-    // Función nativa para codificar emojis correctamente en UTF-8
     window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
     setWaActionModal(null);
   };
@@ -902,10 +920,7 @@ export default function App() {
     const [origenKey, setOrigenKey] = useState(editingClient ? 'manual' : 'inventario');
     const [idLlaveSeleccionada, setIdLlaveSeleccionada] = useState('');
     
-    // Autocompletado (Memoria Inteligente)
     const [showAutocomplete, setShowAutocomplete] = useState(false);
-    
-    // Multi-Perfil (Streaming)
     const [perfilesAdicionales, setPerfilesAdicionales] = useState([]);
 
     const clientesUnicos = useMemo(() => {
@@ -919,8 +934,9 @@ export default function App() {
     const filteredSuggestions = clientesUnicos.filter(c => c.nombre.toLowerCase().includes(formData.nombre.toLowerCase()) || String(c.telefono).includes(formData.nombre));
     const existingClient = clientes.find(c => c.telefono === formData.telefono && (!editingClient || c.id !== editingClient.id));
     
+    const plataformasAntivirus = Array.from(new Set(['ESET NOD32 Premium', 'ESET Internet Security', 'ESET Mobile Security', 'Kaspersky Plus', 'McAfee Total Protection', ...stockAV.map(k => k.producto)])).sort();
     let plataformasDisponibles = [];
-    if (isAntivirus) plataformasDisponibles = ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection', 'ESET Mobile Security'];
+    if (isAntivirus) plataformasDisponibles = plataformasAntivirus;
     else if (isSoftware) plataformasDisponibles = plantillas.map(p => p.nombre);
     else plataformasDisponibles = Array.from(new Set(['Netflix', 'Disney+', 'Max', 'Amazon Prime', 'Spotify', ...cuentasMaster.map(m => m.plataforma)])).sort();
 
@@ -935,7 +951,6 @@ export default function App() {
           </div>
           
           <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 bg-slate-50">
-            {/* DATOS DEL CLIENTE Y AUTOCOMPLETADO */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-bold text-slate-800 flex items-center"><Smartphone className="w-5 h-5 mr-2 text-slate-400"/> Datos del {isSoftware ? 'Profesional' : 'Cliente'}</h4>
@@ -978,7 +993,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* ASIGNACIÓN DE SERVICIO */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Server className="w-5 h-5 mr-2 text-slate-400"/> Asignación de Servicio</h4>
                <div className="mb-5">
@@ -989,7 +1003,6 @@ export default function App() {
                 {isSoftware && plantillas.length === 0 && <p className="text-xs text-red-500 mt-2 font-bold">⚠ No has creado ningún producto. Ve a la pestaña "Configuración".</p>}
               </div>
 
-              {/* STREAMING Y SOFTWARE: TIPO DE CUENTA */}
               {!isAntivirus && (
                 <div className={`${isSoftware ? 'bg-cyan-50 border-cyan-100' : 'bg-orange-50 border-orange-100'} border-2 rounded-2xl p-5 space-y-4`}>
                   <div className="flex space-x-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
@@ -1013,13 +1026,11 @@ export default function App() {
                       </select>
                       {formData.idMaster && (
                          <div className="space-y-3 mt-4">
-                           {/* PERFIL 1 (Principal) */}
                            <div className="flex gap-4 items-start">
                              <div className="w-1/3 flex items-center justify-center text-sm font-bold text-green-800 bg-green-100 rounded-xl border border-green-200 h-[52px]">Perfil {formData.perfil}</div>
                              <div className="w-2/3"><input type="text" className="w-full border-2 border-orange-200 rounded-xl p-3.5 font-bold text-orange-900 bg-white" value={formData.pin || ''} onChange={(e) => setFormData({...formData, pin: e.target.value})} placeholder="PIN o Correo (Invitación)" /></div>
                            </div>
                            
-                           {/* PERFILES ADICIONALES (Múltiples) */}
                            {perfilesAdicionales.map((extra, idx) => (
                              <div key={idx} className="flex gap-4 items-start relative bg-orange-100/50 p-2 rounded-xl border border-orange-200 border-dashed">
                                <div className="w-1/3"><input type="text" className="w-full border-2 border-orange-200 rounded-xl p-2.5 font-bold text-center text-green-800 bg-white" value={extra.perfil || ''} onChange={(e) => { const n = [...perfilesAdicionales]; n[idx].perfil = e.target.value; setPerfilesAdicionales(n); }} placeholder="Nº Perfil" /></div>
@@ -1027,7 +1038,6 @@ export default function App() {
                              </div>
                            ))}
 
-                           {/* BOTÓN AÑADIR PERFIL */}
                            <button type="button" onClick={() => {
                               const mId = formData.idMaster;
                               const ocupados = clientes.filter(c => c.idMaster === mId && c.id !== editingClient?.id).map(c => parseInt(c.perfil));
@@ -1050,7 +1060,6 @@ export default function App() {
                          {!isSoftware && <input type="text" placeholder="PIN / Invitación" value={formData.pin || ''} onChange={e=>setFormData({...formData, pin: e.target.value})} className="border-2 border-indigo-100 rounded-xl p-3 font-bold text-center" />}
                        </div>
                        
-                       {/* PERFILES ADICIONALES EXTERNOS */}
                        {!isSoftware && perfilesAdicionales.map((extra, idx) => (
                          <div key={idx} className="flex gap-4 items-center bg-indigo-50/50 p-2 rounded-xl border border-indigo-200 border-dashed relative">
                            <div className="w-1/2"><input type="text" placeholder="Perfil Extra (Ej. P4)" value={extra.perfilExterno || ''} onChange={(e) => { const n = [...perfilesAdicionales]; n[idx].perfilExterno = e.target.value; setPerfilesAdicionales(n); }} className="w-full border-2 border-indigo-100 rounded-xl p-2.5 font-bold text-center" /></div>
@@ -1068,7 +1077,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* ANTIVIRUS: INVENTARIO O MANUAL */}
               {isAntivirus && (
                  <div className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-5 mt-4">
                     {!isEdit && (
@@ -1196,11 +1204,9 @@ export default function App() {
     </div>
   );
 
-  // 🔴 PANTALLA DE LOGIN TECNOLÓGICA (Solo se muestra si no está logueado)
   if (!isAuthenticated) {
     return (
       <div className="flex h-screen bg-slate-950 items-center justify-center font-sans text-slate-300 relative overflow-hidden">
-        {/* Efectos de fondo */}
         <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
           <div className="w-[800px] h-[800px] bg-blue-600 rounded-full blur-[150px] mix-blend-screen"></div>
         </div>
@@ -1241,7 +1247,6 @@ export default function App() {
     );
   }
 
-  // PLATAFORMA PRINCIPAL (Si está logueado)
   return (
     <>
       <style>{`.animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
