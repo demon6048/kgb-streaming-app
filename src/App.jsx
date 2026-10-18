@@ -11,10 +11,11 @@ import './index.css';
 // ==========================================
 // 1. CONFIGURACIÓN Y CONSTANTES
 // ==========================================
+// URL DE TU API DE GOOGLE SHEETS
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBFTTZ3UyiIB_lh9nZ1zagAJ6-ylxfQUvRKPkJMC_MIvkJUjIy/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
-// 🔴 CONTRASEÑA DE ACCESO A LA PLATAFORMA (Cámbiala por la tuya)
+// 🔴 CONTRASEÑA DE ACCESO A LA PLATAFORMA
 const ADMIN_PASSWORD = "admin"; 
 
 // ==========================================
@@ -267,7 +268,6 @@ const AntivirusList = ({ processedClients, setWaActionModal, setEditingClient, s
 const CampanasList = ({ processedClients, stockAV, handleGiveGift, triggerWhatsAppAlert, syncStatus }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Base de datos global mezclada
   const filteredClients = processedClients.filter(c => c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || c.telefono?.includes(searchTerm)).sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
   const freeEsetKeys = stockAV.filter(k => k.producto.includes('ESET') && k.estado === 'Disponible').length;
 
@@ -597,7 +597,10 @@ export default function App() {
     if (!SCRIPT_URL) return;
     setSyncStatus('sincronizando');
     try {
-      const response = await fetch(`${SCRIPT_URL}?nocache=${new Date().getTime()}`);
+      // Usamos el parametro nocache para asegurar que trae la ultima versión de Google
+      const fetchUrl = `${SCRIPT_URL}?nocache=${new Date().getTime()}`;
+      console.log("Iniciando conexión a Base de Datos...");
+      const response = await fetch(fetchUrl);
       const text = await response.text();
       try {
         const data = JSON.parse(text);
@@ -607,8 +610,15 @@ export default function App() {
         setPlantillas(data.plantillas || []);
         if(data.integrantes && data.integrantes.length > 0) setIntegrantes(data.integrantes);
         setSyncStatus('sincronizado');
-      } catch (parseError) { throw new Error('Error al leer Google'); }
-    } catch (error) { setSyncStatus('error'); }
+        console.log("Sincronización exitosa con Sheets.");
+      } catch (parseError) { 
+        console.error("Error al leer JSON desde Google:", text);
+        throw new Error('Error al leer Google'); 
+      }
+    } catch (error) { 
+      console.error("Falla de red en fetchDataFromSheets:", error);
+      setSyncStatus('error'); 
+    }
   }, []);
 
   const syncToSheets = async (accion, payload) => {
@@ -632,9 +642,9 @@ export default function App() {
     }
   };
 
+  // Se lanza la búsqueda de datos sin importar si está logueado, así cuando entra ya están listos
   useEffect(() => { fetchDataFromSheets(); }, [fetchDataFromSheets]);
 
-  // Cálculos Derivados
   const processedClients = useMemo(() => {
     return clientes.map(client => {
       const days = getDaysRemaining(client.fechaVencimiento);
@@ -707,7 +717,7 @@ export default function App() {
     });
     setClientes(newClientesList);
 
-    // Guardar en Google Sheets uno por uno (o podrías hacer un endpoint para enviar array, pero uno a uno es seguro)
+    // Guardar en Google Sheets
     for (let c of clientesAGuardar) {
        await syncToSheets('guardarCliente', c);
     }
@@ -721,7 +731,6 @@ export default function App() {
        }
     }
     
-    // WhatsApp Multi-Perfil unificado
     if (sendWhatsApp) {
        triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta, clientesAGuardar);
     }
@@ -757,9 +766,7 @@ export default function App() {
       } else if (client.categoria === 'software') {
          msg += `👤 Correo de acceso: ${client.correoExterno}\n🔑 Contraseña: ${client.claveExterna}\n`;
       } else {
-         // Lógica para multi-perfil o perfil único
          const listaParaEnviar = arrayClientesMultiples ? arrayClientesMultiples : [client];
-         
          listaParaEnviar.forEach((c, index) => {
             const numPerfil = listaParaEnviar.length > 1 ? `(Perfil #${index + 1}) ` : '';
             if (c.idMaster || tipoCuenta === 'master') {
@@ -809,6 +816,7 @@ export default function App() {
       msg += opcionesAlerta[Math.floor(Math.random() * opcionesAlerta.length)];
     }
     
+    // Función nativa para codificar emojis correctamente en UTF-8
     window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
     setWaActionModal(null);
   };
@@ -817,19 +825,16 @@ export default function App() {
     const isAsiduo = window.confirm("¿Es un cliente asiduo? (Dará instrucciones para reclamar cada mes)");
     const mesesRegalo = 1;
 
-    // Buscar una llave ESET disponible
     const llaveDisponible = stockAV.find(k => k.producto.includes('ESET') && k.estado === 'Disponible');
     if (!llaveDisponible) {
       showToast('No hay llaves de ESET disponibles en inventario', 'error');
       return;
     }
 
-    // 1. Marcar la llave como usada
     const updatedLlave = { ...llaveDisponible, estado: 'Usada', idCliente: client.id };
     setStockAV(prev => prev.map(k => k.id === updatedLlave.id ? updatedLlave : k));
     await syncToSheets('guardarLlave', updatedLlave);
 
-    // 2. Crear el registro del regalo
     const fechaInicio = getToday().toISOString().split('T')[0];
     const fechaVencimiento = addMonthsToDate(fechaInicio, mesesRegalo);
     
@@ -851,7 +856,6 @@ export default function App() {
     showToast('Regalo registrado y llave descontada');
     await syncToSheets('guardarCliente', registroRegalo);
 
-    // 3. Enviar WhatsApp estructurado con codificación UTF-8
     const mensajeAsiduo = isAsiduo ? `\n\n⭐ *BENEFICIO EXCLUSIVO:* Al ser uno de nuestros clientes más fieles, ¡no te olvides de reclamar tu nueva clave cada mes con nosotros! 🚀` : '';
 
     let msg = `¡Hola ${client.nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.
@@ -877,7 +881,6 @@ export default function App() {
     const isEdit = !!editingClient;
     const isAntivirus = initialCategory === 'antivirus';
     const isSoftware = initialCategory === 'software';
-    const isStreaming = initialCategory === 'streaming';
     
     const [formData, setFormData] = useState(editingClient || { 
       nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? (plantillas[0]?.nombre || 'Software') : 'Netflix', 
