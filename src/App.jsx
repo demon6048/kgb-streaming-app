@@ -629,6 +629,7 @@ const ClientFormModal = ({ isOpen, onClose, editingClient, initialCategory, inte
   const isEdit = !!editingClient;
   const isAntivirus = initialCategory === 'antivirus';
   const isSoftware = initialCategory === 'software';
+  const isStreaming = initialCategory === 'streaming';
 
   const [formData, setFormData] = useState(editingClient || {
     nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? (plantillas[0]?.nombre || 'Software') : 'Netflix',
@@ -642,12 +643,130 @@ const ClientFormModal = ({ isOpen, onClose, editingClient, initialCategory, inte
   const [origenKey, setOrigenKey] = useState(editingClient ? 'manual' : 'inventario');
   const [idLlaveSeleccionada, setIdLlaveSeleccionada] = useState('');
 
+  // Estados para Autocompletado Inteligente de Clientes
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Estados para Múltiples Perfiles en una misma venta
+  const [extraProfiles, setExtraProfiles] = useState([]);
+
+  // Memoria de clientes únicos (Nombre + Teléfono) leída directamente de toda tu base de datos en Google Sheets
+  const uniqueClients = useMemo(() => {
+    const map = new Map();
+    clientes.forEach(c => {
+      const nom = String(c.nombre || '').trim();
+      const tel = String(c.telefono || '').trim();
+      if (nom) {
+        const key = `${nom.toLowerCase()}_${tel}`;
+        if (!map.has(key)) {
+          map.set(key, { nombre: nom, telefono: tel });
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [clientes]);
+
+  // Filtrar sugerencias al instante (muestra clientes al hacer clic o al escribir desde la primera letra)
+  const suggestions = useMemo(() => {
+    const nameQuery = String(formData.nombre || '').trim().toLowerCase();
+    const phoneQuery = String(formData.telefono || '').trim();
+
+    if (!nameQuery && !phoneQuery) {
+      return uniqueClients.slice(0, 8);
+    }
+
+    return uniqueClients.filter(u => {
+      const uName = u.nombre.toLowerCase();
+      const uPhone = u.telefono;
+      if (uName === nameQuery && uPhone === phoneQuery) return false;
+      // Prioriza los que empiezan con la letra escrita o la contienen
+      const matchName = nameQuery && uName.includes(nameQuery);
+      const matchPhone = phoneQuery && uPhone.includes(phoneQuery);
+      return matchName || matchPhone;
+    }).sort((a, b) => {
+      const aStarts = a.nombre.toLowerCase().startsWith(nameQuery);
+      const bStarts = b.nombre.toLowerCase().startsWith(nameQuery);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return a.nombre.localeCompare(b.nombre);
+    }).slice(0, 6);
+  }, [uniqueClients, formData.nombre, formData.telefono]);
+
+  // Mejor coincidencia para autocompletar con la tecla Tab o Enter
+  const bestMatch = useMemo(() => {
+    const nameQuery = String(formData.nombre || '').trim().toLowerCase();
+    if (!nameQuery) return null;
+    return suggestions.find(u => u.nombre.toLowerCase().startsWith(nameQuery)) || suggestions[0] || null;
+  }, [suggestions, formData.nombre]);
+
   let plataformasDisponibles = [];
   if (isAntivirus) plataformasDisponibles = ['ESET NOD32 Premium', 'ESET Internet Security', 'Kaspersky Plus', 'McAfee Total Protection'];
   else if (isSoftware) plataformasDisponibles = plantillas.map(p => p.nombre);
   else plataformasDisponibles = Array.from(new Set(['Netflix', 'Disney+', 'Max', 'Amazon Prime', 'Spotify', ...cuentasMaster.map(m => m.plataforma)])).sort();
 
   const llavesDisponibles = stockAV.filter(k => k.producto === formData.servicio && k.estado === 'Disponible');
+
+  // Calcula el siguiente perfil libre tomando en cuenta la base de datos y los perfiles extra de esta misma venta
+  const calcularSiguientePerfil = (mId, indexExtra = -1) => {
+    if (!mId) return '';
+    const ocupadosDB = clientes.filter(c => c.idMaster === mId && c.id !== editingClient?.id).map(c => parseInt(c.perfil));
+    const ocupadosForm = [];
+    if (indexExtra !== -1 && formData.idMaster === mId && formData.perfil) {
+      ocupadosForm.push(parseInt(formData.perfil));
+    }
+    extraProfiles.forEach((ep, idx) => {
+      if (idx !== indexExtra && ep.idMaster === mId && ep.perfil) {
+        ocupadosForm.push(parseInt(ep.perfil));
+      }
+    });
+    const todosOcupados = [...ocupadosDB, ...ocupadosForm];
+    let sigPerfil = 1;
+    while (todosOcupados.includes(sigPerfil)) sigPerfil++;
+    return sigPerfil.toString();
+  };
+
+  const handleAddExtraProfile = () => {
+    // Si el perfil principal tiene una cuenta Master seleccionada, intentamos pre-asignar la misma Master con el siguiente perfil libre
+    let defaultMaster = formData.idMaster || '';
+    let nextP = '';
+    if (tipoCuenta === 'master' && defaultMaster) {
+      const ocupadosDB = clientes.filter(c => c.idMaster === defaultMaster && c.id !== editingClient?.id).map(c => parseInt(c.perfil));
+      const ocupadosForm = [];
+      if (formData.perfil) ocupadosForm.push(parseInt(formData.perfil));
+      extraProfiles.forEach(ep => {
+        if (ep.idMaster === defaultMaster && ep.perfil) ocupadosForm.push(parseInt(ep.perfil));
+      });
+      const todos = [...ocupadosDB, ...ocupadosForm];
+      let sig = 1;
+      while (todos.includes(sig)) sig++;
+      const masterObj = cuentasMaster.find(m => m.id === defaultMaster);
+      const limit = parseInt(masterObj?.limitePerfiles) || 5;
+      if (todos.length < limit) {
+        nextP = sig.toString();
+      } else {
+        defaultMaster = '';
+      }
+    }
+
+    setExtraProfiles([
+      ...extraProfiles,
+      { idMaster: defaultMaster, perfil: nextP, pin: '', correoExterno: formData.correoExterno || '', claveExterna: formData.claveExterna || '', perfilExterno: '' }
+    ]);
+  };
+
+  const handleUpdateExtraProfile = (index, field, value) => {
+    const updated = [...extraProfiles];
+    if (field === 'idMaster') {
+      const nextP = calcularSiguientePerfil(value, index);
+      updated[index] = { ...updated[index], idMaster: value, perfil: nextP };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
+    setExtraProfiles(updated);
+  };
+
+  const handleRemoveExtraProfile = (index) => {
+    setExtraProfiles(extraProfiles.filter((_, idx) => idx !== index));
+  };
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
@@ -658,11 +777,97 @@ const ClientFormModal = ({ isOpen, onClose, editingClient, initialCategory, inte
         </div>
 
         <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Smartphone className="w-5 h-5 mr-2 text-slate-400" /> Datos del Cliente</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre *</label><input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white outline-none" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} placeholder="Ej. Carlos Pérez" /></div>
-              <div><label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código) *</label><input type="tel" className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white outline-none" value={formData.telefono} onChange={e => setFormData({ ...formData, telefono: e.target.value.replace(/\D/g, '') })} placeholder="999888777" /></div>
+          {/* SECCIÓN DATOS DEL CLIENTE CON AUTOCOMPLETADO INTELIGENTE */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative">
+            <h4 className="font-bold text-slate-800 mb-4 flex items-center justify-between">
+              <span className="flex items-center"><Smartphone className="w-5 h-5 mr-2 text-slate-400" /> Datos del Cliente</span>
+              <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                ⚡ {uniqueClients.length} clientes en memoria
+              </span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+              <div className="relative">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre * <span className="text-[10px] text-blue-600 font-normal">(Escribe o presiona Tab)</span></label>
+                <input
+                  className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-medium"
+                  value={formData.nombre}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
+                  onKeyDown={e => {
+                    if ((e.key === 'Tab' || e.key === 'Enter') && bestMatch && showSuggestions) {
+                      e.preventDefault();
+                      setFormData({ ...formData, nombre: bestMatch.nombre, telefono: bestMatch.telefono });
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  onChange={e => {
+                    setFormData({ ...formData, nombre: e.target.value });
+                    setShowSuggestions(true);
+                  }}
+                  placeholder="Ej. Escribe 'J' para buscar..."
+                  autoComplete="off"
+                />
+                {bestMatch && formData.nombre && (
+                  <div className="mt-1.5 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1 text-xs">
+                    <span className="text-blue-800 truncate">Sugerencia: <strong>{bestMatch.nombre}</strong> ({bestMatch.telefono})</span>
+                    <button
+                      type="button"
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        setFormData({ ...formData, nombre: bestMatch.nombre, telefono: bestMatch.telefono });
+                        setShowSuggestions(false);
+                      }}
+                      className="ml-2 bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[10px] shrink-0 hover:bg-blue-700"
+                    >
+                      Autocompletar ↹
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código) *</label>
+                <input
+                  type="tel"
+                  className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-mono font-medium"
+                  value={formData.telefono}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
+                  onChange={e => {
+                    setFormData({ ...formData, telefono: e.target.value.replace(/\D/g, '') });
+                    setShowSuggestions(true);
+                  }}
+                  placeholder="999888777"
+                  autoComplete="off"
+                />
+              </div>
+
+              {/* Lista desplegable de sugerencias de clientes */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="md:col-span-2 bg-white border-2 border-blue-300 rounded-2xl shadow-xl overflow-hidden z-30 mt-1 animate-fadeIn">
+                  <div className="bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white uppercase tracking-wider flex justify-between items-center">
+                    <span>Selecciona un cliente para autocompletar nombre y teléfono</span>
+                    <span className="text-[10px] bg-blue-800 px-2 py-0.5 rounded">Tecla Tab ↹</span>
+                  </div>
+                  <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                    {suggestions.map((sug, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseDown={e => {
+                          // onMouseDown evita que el input pierda el foco antes de seleccionar al cliente
+                          e.preventDefault();
+                          setFormData({ ...formData, nombre: sug.nombre, telefono: sug.telefono });
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-blue-50 flex items-center justify-between transition-colors"
+                      >
+                        <span className="font-bold text-slate-800 text-sm">{sug.nombre}</span>
+                        <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">+{sug.telefono}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -670,7 +875,7 @@ const ClientFormModal = ({ isOpen, onClose, editingClient, initialCategory, inte
             <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Server className="w-5 h-5 mr-2 text-slate-400" /> Producto y Acceso</h4>
             <div className="mb-4">
               <label className="block text-xs font-bold text-slate-500 mb-1.5">Seleccionar Producto *</label>
-              <select className="w-full border-2 rounded-xl p-3 font-bold bg-slate-50 outline-none" value={formData.servicio} onChange={e => { setFormData({ ...formData, servicio: e.target.value, idMaster: '', proveedorKey: '' }); setIdLlaveSeleccionada(''); }}>
+              <select className="w-full border-2 rounded-xl p-3 font-bold bg-slate-50 outline-none" value={formData.servicio} onChange={e => { setFormData({ ...formData, servicio: e.target.value, idMaster: '', proveedorKey: '' }); setExtraProfiles([]); setIdLlaveSeleccionada(''); }}>
                 {plataformasDisponibles.map(plat => <option key={plat} value={plat}>{plat}</option>)}
               </select>
             </div>
@@ -681,33 +886,102 @@ const ClientFormModal = ({ isOpen, onClose, editingClient, initialCategory, inte
                   <button type="button" onClick={() => setTipoCuenta('externo')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${tipoCuenta === 'externo' ? (isSoftware ? 'bg-cyan-600 text-white' : 'bg-indigo-500 text-white') : 'text-slate-500'}`}>Asignar Acceso Propio</button>
                   {!isSoftware && <button type="button" onClick={() => setTipoCuenta('master')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${tipoCuenta === 'master' ? 'bg-orange-500 text-white' : 'text-slate-500'}`}>Usar Cuenta Máster</button>}
                 </div>
-                {tipoCuenta === 'master' && !isSoftware ? (
-                  <div>
-                    <select className="w-full border-2 border-orange-200 rounded-xl p-3 font-medium bg-white outline-none" value={formData.idMaster} onChange={e => {
-                      const mId = e.target.value;
-                      if (!mId) return setFormData({ ...formData, idMaster: '', perfil: '' });
-                      const ocupados = clientes.filter(c => c.idMaster === mId && c.id !== editingClient?.id).map(c => parseInt(c.perfil));
-                      let sigPerfil = 1; while (ocupados.includes(sigPerfil)) sigPerfil++;
-                      setFormData({ ...formData, idMaster: mId, perfil: sigPerfil.toString() });
-                    }}>
-                      <option value="">-- Seleccionar Master Disponible --</option>
-                      {cuentasMaster.filter(m => formData.servicio.includes(m.plataforma) || m.plataforma.includes(formData.servicio)).map(m => (
-                        <option key={m.id} value={m.id}>{m.correo} (Libres: {(parseInt(m.limitePerfiles) || 5) - clientes.filter(c => c.idMaster === m.id && c.id !== editingClient?.id).length})</option>
-                      ))}
-                    </select>
-                    {formData.idMaster && (
-                      <div className="flex gap-3 items-start mt-3">
-                        <div className="w-1/3 flex items-center justify-center text-sm font-bold text-green-800 bg-green-100 p-3 rounded-xl border border-green-200">Perfil {formData.perfil}</div>
-                        <div className="w-2/3"><input type="text" className="w-full border-2 border-orange-200 rounded-xl p-3 font-bold text-orange-900 bg-white outline-none" value={formData.pin || ''} onChange={e => setFormData({ ...formData, pin: e.target.value })} placeholder="PIN / Invitación" /></div>
+
+                {/* PERFIL 1 (PRINCIPAL) */}
+                <div className="space-y-3">
+                  {isStreaming && extraProfiles.length > 0 && (
+                    <div className="text-xs font-black uppercase text-orange-800 tracking-wider">Perfil #1 (Principal)</div>
+                  )}
+                  {tipoCuenta === 'master' && !isSoftware ? (
+                    <div>
+                      <select className="w-full border-2 border-orange-200 rounded-xl p-3 font-medium bg-white outline-none" value={formData.idMaster} onChange={e => {
+                        const mId = e.target.value;
+                        if (!mId) return setFormData({ ...formData, idMaster: '', perfil: '' });
+                        const sigPerfil = calcularSiguientePerfil(mId, -1);
+                        setFormData({ ...formData, idMaster: mId, perfil: sigPerfil });
+                      }}>
+                        <option value="">-- Seleccionar Master Disponible --</option>
+                        {cuentasMaster.filter(m => formData.servicio.includes(m.plataforma) || m.plataforma.includes(formData.servicio)).map(m => (
+                          <option key={m.id} value={m.id}>{m.correo} (Libres: {(parseInt(m.limitePerfiles) || 5) - clientes.filter(c => c.idMaster === m.id && c.id !== editingClient?.id).length})</option>
+                        ))}
+                      </select>
+                      {formData.idMaster && (
+                        <div className="flex gap-3 items-start mt-3">
+                          <div className="w-1/3 flex items-center justify-center text-sm font-bold text-green-800 bg-green-100 p-3 rounded-xl border border-green-200">
+                            <span>Perfil</span>
+                            <input
+                              type="text"
+                              className="w-10 ml-1.5 bg-white text-center rounded border border-green-300 font-black text-green-900"
+                              value={formData.perfil}
+                              onChange={e => setFormData({ ...formData, perfil: e.target.value })}
+                            />
+                          </div>
+                          <div className="w-2/3"><input type="text" className="w-full border-2 border-orange-200 rounded-xl p-3 font-bold text-orange-900 bg-white outline-none" value={formData.pin || ''} onChange={e => setFormData({ ...formData, pin: e.target.value })} placeholder="PIN / Invitación del Perfil 1" /></div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="email" placeholder="Correo Asignado" value={formData.correoExterno || ''} onChange={e => setFormData({ ...formData, correoExterno: e.target.value })} className={`col-span-2 md:col-span-1 border-2 ${isSoftware ? 'border-cyan-200' : 'border-indigo-100'} rounded-xl p-3 outline-none bg-white`} />
+                      <input type="text" placeholder="Clave de Acceso" value={formData.claveExterna || ''} onChange={e => setFormData({ ...formData, claveExterna: e.target.value })} className={`col-span-2 md:col-span-1 border-2 ${isSoftware ? 'border-cyan-200' : 'border-indigo-100'} rounded-xl p-3 outline-none bg-white`} />
+                      {!isSoftware && <><input type="text" placeholder="Perfil (Ej. P3)" value={formData.perfilExterno || ''} onChange={e => setFormData({ ...formData, perfilExterno: e.target.value })} className="border-2 border-indigo-100 rounded-xl p-3 outline-none bg-white" /><input type="text" placeholder="PIN / Invitación" value={formData.pin || ''} onChange={e => setFormData({ ...formData, pin: e.target.value })} className="border-2 border-indigo-100 rounded-xl p-3 font-bold outline-none bg-white" /></>}
+                    </div>
+                  )}
+                </div>
+
+                {/* PERFILES ADICIONALES (CUANDO EL CLIENTE COMPRA 2 O MÁS PERFILES) */}
+                {isStreaming && !isEdit && extraProfiles.map((ep, idx) => (
+                  <div key={idx} className="pt-4 border-t-2 border-dashed border-orange-200 space-y-3 animate-fadeIn">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black uppercase text-orange-800 tracking-wider">Perfil Adicional #{idx + 2}</span>
+                      <button type="button" onClick={() => handleRemoveExtraProfile(idx)} className="text-xs font-bold text-red-600 hover:text-red-800 flex items-center bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Quitar
+                      </button>
+                    </div>
+
+                    {tipoCuenta === 'master' ? (
+                      <div>
+                        <select className="w-full border-2 border-orange-200 rounded-xl p-3 font-medium bg-white outline-none" value={ep.idMaster} onChange={e => handleUpdateExtraProfile(idx, 'idMaster', e.target.value)}>
+                          <option value="">-- Seleccionar Master Disponible --</option>
+                          {cuentasMaster.filter(m => formData.servicio.includes(m.plataforma) || m.plataforma.includes(formData.servicio)).map(m => (
+                            <option key={m.id} value={m.id}>{m.correo} (Libres: {(parseInt(m.limitePerfiles) || 5) - clientes.filter(c => c.idMaster === m.id).length})</option>
+                          ))}
+                        </select>
+                        {ep.idMaster && (
+                          <div className="flex gap-3 items-start mt-3">
+                            <div className="w-1/3 flex items-center justify-center text-sm font-bold text-green-800 bg-green-100 p-3 rounded-xl border border-green-200">
+                              <span>Perfil</span>
+                              <input
+                                type="text"
+                                className="w-10 ml-1.5 bg-white text-center rounded border border-green-300 font-black text-green-900"
+                                value={ep.perfil}
+                                onChange={e => handleUpdateExtraProfile(idx, 'perfil', e.target.value)}
+                              />
+                            </div>
+                            <div className="w-2/3"><input type="text" className="w-full border-2 border-orange-200 rounded-xl p-3 font-bold text-orange-900 bg-white outline-none" value={ep.pin || ''} onChange={e => handleUpdateExtraProfile(idx, 'pin', e.target.value)} placeholder={`PIN / Invitación del Perfil ${idx + 2}`} /></div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <input type="email" placeholder="Correo Asignado" value={ep.correoExterno || ''} onChange={e => handleUpdateExtraProfile(idx, 'correoExterno', e.target.value)} className="col-span-2 md:col-span-1 border-2 border-indigo-100 rounded-xl p-3 outline-none bg-white" />
+                        <input type="text" placeholder="Clave de Acceso" value={ep.claveExterna || ''} onChange={e => handleUpdateExtraProfile(idx, 'claveExterna', e.target.value)} className="col-span-2 md:col-span-1 border-2 border-indigo-100 rounded-xl p-3 outline-none bg-white" />
+                        <input type="text" placeholder="Perfil (Ej. P4)" value={ep.perfilExterno || ''} onChange={e => handleUpdateExtraProfile(idx, 'perfilExterno', e.target.value)} className="border-2 border-indigo-100 rounded-xl p-3 outline-none bg-white" />
+                        <input type="text" placeholder="PIN / Invitación" value={ep.pin || ''} onChange={e => handleUpdateExtraProfile(idx, 'pin', e.target.value)} className="border-2 border-indigo-100 rounded-xl p-3 font-bold outline-none bg-white" />
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <input type="email" placeholder="Correo Asignado" value={formData.correoExterno || ''} onChange={e => setFormData({ ...formData, correoExterno: e.target.value })} className={`col-span-2 md:col-span-1 border-2 ${isSoftware ? 'border-cyan-200' : 'border-indigo-100'} rounded-xl p-3 outline-none`} />
-                    <input type="text" placeholder="Clave de Acceso" value={formData.claveExterna || ''} onChange={e => setFormData({ ...formData, claveExterna: e.target.value })} className={`col-span-2 md:col-span-1 border-2 ${isSoftware ? 'border-cyan-200' : 'border-indigo-100'} rounded-xl p-3 outline-none`} />
-                    {!isSoftware && <><input type="text" placeholder="Perfil (Ej. P3)" value={formData.perfilExterno || ''} onChange={e => setFormData({ ...formData, perfilExterno: e.target.value })} className="border-2 border-indigo-100 rounded-xl p-3 outline-none" /><input type="text" placeholder="PIN / Invitación" value={formData.pin || ''} onChange={e => setFormData({ ...formData, pin: e.target.value })} className="border-2 border-indigo-100 rounded-xl p-3 font-bold outline-none" /></>}
-                  </div>
+                ))}
+
+                {/* BOTÓN PARA AGREGAR OTRO PERFIL A LA MISMA VENTA */}
+                {isStreaming && !isEdit && (
+                  <button
+                    type="button"
+                    onClick={handleAddExtraProfile}
+                    className="w-full py-2.5 border-2 border-dashed border-orange-400 text-orange-700 hover:bg-orange-100/60 rounded-xl font-bold text-sm flex items-center justify-center transition-colors"
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> Añadir otro perfil a esta venta ({extraProfiles.length + 1} en total)
+                  </button>
                 )}
               </div>
             )}
@@ -750,8 +1024,8 @@ const ClientFormModal = ({ isOpen, onClose, editingClient, initialCategory, inte
 
         <div className="p-6 border-t bg-white flex flex-col-reverse md:flex-row justify-end gap-3 rounded-b-3xl shrink-0">
           <button onClick={onClose} className="px-6 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
-          <button onClick={() => onSave(formData, false, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className="px-6 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 disabled:opacity-50 transition-colors">Solo Guardar</button>
-          <button onClick={() => onSave(formData, true, tipoCuenta, idLlaveSeleccionada)} disabled={syncStatus === 'sincronizando' || !formData.nombre || (isSoftware && plantillas.length === 0)} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600 hover:bg-purple-700' : isSoftware ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-green-500 hover:bg-green-600'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50 transition-colors`}><MessageCircle className="w-5 h-5 inline mr-2" /> Guardar y Notificar</button>
+          <button onClick={() => onSave(formData, false, tipoCuenta, idLlaveSeleccionada, extraProfiles)} disabled={syncStatus === 'sincronizando' || !formData.nombre} className="px-6 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 disabled:opacity-50 transition-colors">Solo Guardar {extraProfiles.length > 0 ? `(${extraProfiles.length + 1})` : ''}</button>
+          <button onClick={() => onSave(formData, true, tipoCuenta, idLlaveSeleccionada, extraProfiles)} disabled={syncStatus === 'sincronizando' || !formData.nombre || (isSoftware && plantillas.length === 0)} className={`px-6 py-3.5 ${isAntivirus ? 'bg-purple-600 hover:bg-purple-700' : isSoftware ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-green-500 hover:bg-green-600'} text-white rounded-xl font-bold shadow-lg disabled:opacity-50 transition-colors`}><MessageCircle className="w-5 h-5 inline mr-2" /> Guardar y Notificar {extraProfiles.length > 0 ? `(${extraProfiles.length + 1})` : ''}</button>
         </div>
       </div>
     </div>
@@ -858,7 +1132,7 @@ export default function App() {
     llavesDisponibles: stockAV.filter(k => k.estado === 'Disponible').length
   }), [clientes, urgentClients, stockAV]);
 
-  const triggerWhatsAppAlert = (client, type, tipoCuenta) => {
+  const triggerWhatsAppAlert = (client, type, tipoCuenta, multiClients = null) => {
     let msg = `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
@@ -869,12 +1143,39 @@ export default function App() {
       if (typeof opciones === 'string') opciones = JSON.parse(opciones);
       msg = opciones[Math.floor(Math.random() * opciones.length)].replace(/{nombre}/gi, client.nombre);
     } else if (type === 'venta') {
-      msg += `Tu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
-      if (client.categoria === 'software' && configSoft) msg += `${configSoft.beneficios || ''}\n\n`;
-      msg += `*TUS CREDENCIALES:*\n`;
-      if (client.categoria === 'antivirus') msg += `🛡️ Key: *${client.proveedorKey}*\n`;
-      else if (client.categoria === 'software' || (!isMaster && client.correoExterno)) msg += `👤 Correo: ${client.correoExterno}\n🔑 Clave: ${client.claveExterna}\n`;
-      else if (isMaster || tipoCuenta === 'master') msg += `📺 Perfil: P${client.perfil}\n🔐 PIN: ${client.pin}\n`;
+      if (multiClients && multiClients.length > 1) {
+        msg += `Tus *${multiClients.length} perfiles* de *${client.servicio}* han sido activados con éxito.\n\n`;
+        msg += `*TUS CREDENCIALES:*\n`;
+        multiClients.forEach((mc, idx) => {
+          const mcMaster = cuentasMaster.find(m => m.id === mc.idMaster);
+          msg += `\n🔹 *Perfil #${idx + 1}:*\n`;
+          if (mc.idMaster || tipoCuenta === 'master') {
+            if (mcMaster) msg += `👤 Correo: ${mcMaster.correo}\n🔑 Clave: ${mcMaster.clave}\n`;
+            msg += `📺 Perfil: P${mc.perfil}\n`;
+            if (mc.pin) msg += `🔐 PIN: ${mc.pin}\n`;
+          } else {
+            if (mc.correoExterno) msg += `👤 Correo: ${mc.correoExterno}\n🔑 Clave: ${mc.claveExterna}\n`;
+            if (mc.perfilExterno) msg += `📺 Perfil: ${mc.perfilExterno}\n`;
+            if (mc.pin) msg += `🔐 PIN: ${mc.pin}\n`;
+          }
+        });
+      } else {
+        msg += `Tu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
+        if (client.categoria === 'software' && configSoft) msg += `${configSoft.beneficios || ''}\n\n`;
+        msg += `*TUS CREDENCIALES:*\n`;
+        if (client.categoria === 'antivirus') {
+          msg += `🛡️ Key: *${client.proveedorKey}*\n`;
+        } else if (client.categoria === 'software' || (!isMaster && client.correoExterno)) {
+          msg += `👤 Correo: ${client.correoExterno}\n🔑 Clave: ${client.claveExterna}\n`;
+          if (client.perfilExterno) msg += `📺 Perfil: ${client.perfilExterno}\n`;
+          if (client.pin) msg += `🔐 PIN: ${client.pin}\n`;
+        } else if (isMaster || tipoCuenta === 'master') {
+          const masterObj = cuentasMaster.find(m => m.id === client.idMaster);
+          if (masterObj) msg += `👤 Correo: ${masterObj.correo}\n🔑 Clave: ${masterObj.clave}\n`;
+          msg += `📺 Perfil: P${client.perfil}\n`;
+          if (client.pin) msg += `🔐 PIN: ${client.pin}\n`;
+        }
+      }
       msg += `\n📅 Vencimiento: ${fechaVencimiento}\n\n¡Gracias por tu confianza! 💙`;
     } else if (type === 'alerta') {
       msg += `Pasábamos a recordarte que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\nSi deseas renovar para que no haya interrupciones, confírmanos por aquí. 😊`;
@@ -888,11 +1189,31 @@ export default function App() {
     setWaActionModal(null);
   };
 
-  const handleSaveClient = async (clientData, sendWhatsApp = false, tipoCuenta = 'master', idLlaveUsada = null) => {
+  const handleSaveClient = async (clientData, sendWhatsApp = false, tipoCuenta = 'master', idLlaveUsada = null, extraProfiles = []) => {
     const isNew = !clientData.id;
-    const finalClient = { ...clientData, id: isNew ? `C_${Date.now()}` : clientData.id };
-    setClientes(prev => isNew ? [finalClient, ...prev] : prev.map(c => c.id === finalClient.id ? finalClient : c));
-    setIsClientModalOpen(false); showToast(isNew ? 'Registro guardado' : 'Registro actualizado');
+    const baseTime = Date.now();
+    const finalClient = { ...clientData, id: isNew ? `C_${baseTime}` : clientData.id };
+
+    // Construimos la lista de todos los perfiles vendidos en esta operación
+    const clientsToSave = [finalClient];
+    if (isNew && extraProfiles && extraProfiles.length > 0) {
+      extraProfiles.forEach((ep, idx) => {
+        clientsToSave.push({
+          ...clientData,
+          id: `C_${baseTime}_${idx + 1}`,
+          idMaster: tipoCuenta === 'master' ? ep.idMaster : '',
+          perfil: tipoCuenta === 'master' ? ep.perfil : '',
+          pin: ep.pin || '',
+          correoExterno: tipoCuenta === 'externo' ? ep.correoExterno : '',
+          claveExterna: tipoCuenta === 'externo' ? ep.claveExterna : '',
+          perfilExterno: tipoCuenta === 'externo' ? ep.perfilExterno : ''
+        });
+      });
+    }
+
+    setClientes(prev => isNew ? [...clientsToSave, ...prev] : prev.map(c => c.id === finalClient.id ? finalClient : c));
+    setIsClientModalOpen(false);
+    showToast(clientsToSave.length > 1 ? `${clientsToSave.length} perfiles guardados` : (isNew ? 'Registro guardado' : 'Registro actualizado'));
 
     if (idLlaveUsada) {
       const llave = stockAV.find(k => k.id === idLlaveUsada);
@@ -902,8 +1223,12 @@ export default function App() {
         await syncToSheets('guardarLlave', updatedLlave);
       }
     }
-    await syncToSheets('guardarCliente', finalClient);
-    if (sendWhatsApp) triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta);
+
+    for (const c of clientsToSave) {
+      await syncToSheets('guardarCliente', c);
+    }
+
+    if (sendWhatsApp) triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta, clientsToSave);
   };
 
   const handleGiveGift = async (client, selectedKeyId, asiduo) => {
