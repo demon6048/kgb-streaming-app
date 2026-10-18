@@ -766,31 +766,31 @@ export default function App() {
 
     } else if (type === 'venta') {
       msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\nTu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
-      if (client.categoria === 'software' && configSoft) msg += `${configSoft.beneficios || ''}\n\n`;
+      
+      if (client.categoria === 'software' && configSoft) {
+        msg += `${configSoft.beneficios || ''}\n\n`;
+      }
 
       msg += `*TUS CREDENCIALES DE ACCESO:*\n`;
       if (client.categoria === 'antivirus') {
-         msg += `🛡️ Key de Activación: *${client.proveedorKey}*\n`;
+         msg += `🛡️ Key de Activación: *${client.proveedorKey}*\n\n`;
+         msg += `*INSTRUCCIONES DE INSTALACIÓN:*\n`;
+         
+         if (client.servicio.toLowerCase().includes('mobile')) {
+            msg += `1️⃣ Entra a la Play Store o App Store en tu celular y descarga la app *ESET Mobile Security*.\n`;
+            msg += `2️⃣ Abre la aplicación, omite los pasos iniciales y ve a la opción de 'Suscripción' o 'Ingresar clave de licencia'.\n`;
+            msg += `3️⃣ Pega la Key de Activación que te enviamos arriba.\n`;
+         } else if (client.servicio.toLowerCase().includes('eset')) {
+            msg += `1️⃣ Descarga el instalador oficial desde este enlace: https://download.eset.com/com/eset/tools/installers/live_eav/latest/eset_nod32_antivirus_live_installer.exe\n`;
+            msg += `2️⃣ Abre el archivo descargado y presiona "Siguiente" hasta que el programa te pida la clave de activación.\n`;
+            msg += `3️⃣ Escribe o pega la Key de Activación que te hemos enviado.\n`;
+            msg += `4️⃣ Continúa presionando "Siguiente" para finalizar y ¡listo! Disfruta de tu equipo totalmente protegido.\n`;
+         } else {
+            msg += `Ingresa al sitio oficial de tu antivirus y utiliza la Key de Activación proporcionada para validar tu versión Premium.\n`;
+         }
       } else if (client.categoria === 'software') {
          msg += `👤 Correo de acceso: ${client.correoExterno}\n🔑 Contraseña: ${client.claveExterna}\n`;
-      } else {
-         const listaParaEnviar = arrayClientesMultiples ? arrayClientesMultiples : [client];
-         listaParaEnviar.forEach((c, index) => {
-            const numPerfil = listaParaEnviar.length > 1 ? `(Perfil #${index + 1}) ` : '';
-            if (c.idMaster || tipoCuenta === 'master') {
-               msg += `📺 ${numPerfil}Perfil Asignado: P${c.perfil}\n`;
-               if (c.pin) msg += c.pin.includes('@') ? `📧 Invitación: ${c.pin}\n` : `🔐 PIN: ${c.pin}\n`;
-            } else if (c.correoExterno) {
-               if(index === 0) msg += `👤 Correo: ${c.correoExterno}\n🔑 Clave: ${c.claveExterna}\n`;
-               msg += `📺 ${numPerfil}Perfil: ${c.perfilExterno || c.perfil}\n`;
-               if (c.pin) msg += c.pin.includes('@') ? `📧 Invitación: ${c.pin}\n` : `🔐 PIN: ${c.pin}\n`;
-            }
-            if (listaParaEnviar.length > 1) msg += `\n`;
-         });
-      }
-      msg += `📅 Vencimiento programado: ${fechaVencimiento}\n\n¡Gracias por confiar en ${parametros.nombreNegocio}! 💼💙`;
-    } 
-    else if (type === 'reenganche') {
+      } else if (isMaster || tipoCuenta === 'master') {
       msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
       const opcionesReenganche = [
         `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte. 😊💙`,
