@@ -16,7 +16,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBF
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 
 // 🔴 CONTRASEÑA DE ACCESO A LA PLATAFORMA
-const ADMIN_PASSWORD = "admin"; 
+const ADMIN_PASSWORD = "S15t3w4s4860"; 
 
 // ==========================================
 // 2. UTILIDADES (Lógica Pura)
@@ -99,7 +99,10 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
       </div>
 
       <div className="p-4 border-t border-slate-800">
-        <button onClick={() => setIsAuthenticated(false)} className="flex items-center justify-center w-full px-4 py-2 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all font-bold text-sm">
+        <button onClick={() => {
+          localStorage.removeItem('kgb_auth');
+          setIsAuthenticated(false);
+        }} className="flex items-center justify-center w-full px-4 py-2 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all font-bold text-sm">
           <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
         </button>
       </div>
@@ -552,7 +555,7 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
 // ==========================================
 export default function App() {
   // 🔴 ESTADOS PARA EL LOGIN Y PRECARGA
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('kgb_auth') === 'true');
   const [passwordInput, setPasswordInput] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [loginError, setLoginError] = useState(false);
@@ -583,8 +586,13 @@ export default function App() {
     setIsAuthenticating(true);
     setLoginError(false);
     setTimeout(() => {
-      if (passwordInput === ADMIN_PASSWORD) setIsAuthenticated(true);
-      else { setLoginError(true); setIsAuthenticating(false); }
+      if (passwordInput === ADMIN_PASSWORD) {
+        localStorage.setItem('kgb_auth', 'true');
+        setIsAuthenticated(true);
+      } else { 
+        setLoginError(true); 
+        setIsAuthenticating(false); 
+      }
     }, 2500); 
   };
 
