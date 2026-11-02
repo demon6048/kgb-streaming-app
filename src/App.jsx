@@ -361,9 +361,174 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
 // ==========================================
 // 4. VISTAS PRINCIPALES (MÓDULOS)
 // ==========================================
-const Dashboard = ({ stats, urgentClients, setWaActionModal }) => {
+const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = [], stockAV = [], handleGiveGift, setActiveTab, showToast }) => {
   const [filtroAlertas, setFiltroAlertas] = useState('todas');
-  
+  const [isSpinningWinner, setIsSpinningWinner] = useState(false);
+  const [roulettePreviewName, setRoulettePreviewName] = useState('');
+  const [pamperedPhones, setPamperedPhones] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('kgb_pampered_cycle_v1') || '[]');
+    } catch (e) {
+      return [];
+    }
+  });
+  const [dailyWinnerPhone, setDailyWinnerPhone] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('kgb_daily_winner_v1') || 'null');
+      const todayKey = getToday().toISOString().split('T')[0];
+      if (saved && saved.date === todayKey && saved.phone) return saved.phone;
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  // 1. Calificación inteligente de todos los clientes (Antigüedad + Renovaciones/Servicios)
+  const clientesCalificados = useMemo(() => {
+    const map = new Map();
+    const today = getToday();
+
+    processedClients.forEach(c => {
+      const phoneKey = String(c.telefono || '').trim();
+      if (!phoneKey || !c.nombre) return;
+
+      const inicioDate = parseDateString(c.fechaInicio) || today;
+      const diasAntiguedad = Math.max(1, Math.ceil((today - inicioDate) / (1000 * 60 * 60 * 24)));
+      const esRegaloPrevio = String(c.servicio || '').includes('Regalo') || String(c.detallesLicencia || '').includes('Regalo') || String(c.detallesLicencia || '').includes('Enganche');
+
+      if (!map.has(phoneKey)) {
+        map.set(phoneKey, {
+          baseClient: c,
+          nombre: c.nombre,
+          telefono: phoneKey,
+          serviciosList: [c.servicio],
+          totalServicios: 1,
+          activosCount: c.daysRemaining >= 0 ? 1 : 0,
+          maxAntiguedadDias: diasAntiguedad,
+          recibioRegaloEnBD: esRegaloPrevio
+        });
+      } else {
+        const entry = map.get(phoneKey);
+        entry.totalServicios += 1;
+        if (!entry.serviciosList.includes(c.servicio)) entry.serviciosList.push(c.servicio);
+        if (c.daysRemaining >= 0) entry.activosCount += 1;
+        if (diasAntiguedad > entry.maxAntiguedadDias) entry.maxAntiguedadDias = diasAntiguedad;
+        if (esRegaloPrevio) entry.recibioRegaloEnBD = true;
+      }
+    });
+
+    return Array.from(map.values()).map(item => {
+      // Puntaje (Tickets de probabilidad): Todos participan, pero los más antiguos y renovadores tienen más boletos
+      const puntosBase = 15;
+      const puntosPorServicios = item.totalServicios * 25;
+      const puntosPorAntiguedad = Math.min(120, Math.floor(item.maxAntiguedadDias / 3) * 2);
+      const puntosPorActivo = item.activosCount > 0 ? 20 : 0;
+      const scoreTotal = puntosBase + puntosPorServicios + puntosPorAntiguedad + puntosPorActivo;
+
+      let estrellas = 3;
+      let nivelTexto = 'Cliente Constante';
+      if (scoreTotal >= 140 || item.totalServicios >= 3 || item.maxAntiguedadDias >= 90) {
+        estrellas = 5;
+        nivelTexto = 'Cliente VIP / Muy Fiel';
+      } else if (scoreTotal >= 85 || item.totalServicios >= 2 || item.maxAntiguedadDias >= 35) {
+        estrellas = 4;
+        nivelTexto = 'Cliente Renovador';
+      } else if (item.maxAntiguedadDias < 15) {
+        estrellas = 2;
+        nivelTexto = 'Cliente Nuevo';
+      }
+
+      return {
+        ...item,
+        scoreTotal,
+        estrellas,
+        nivelTexto
+      };
+    });
+  }, [processedClients]);
+
+  // Función de sorteo ponderado (Garantiza que todos ganen antes de repetir el ciclo)
+  const realizarSorteoInteligente = useCallback((forzarManual = false, listaExcluidosCustom = null) => {
+    if (clientesCalificados.length === 0) return;
+
+    const excluidos = listaExcluidosCustom !== null ? listaExcluidosCustom : pamperedPhones;
+    let candidatos = clientesCalificados.filter(c => !excluidos.includes(c.telefono));
+
+    // Si ya engreímos a todos los clientes de la base de datos, reiniciamos el ciclo automáticamente
+    if (candidatos.length === 0) {
+      candidatos = [...clientesCalificados];
+      setPamperedPhones([]);
+      localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify([]));
+    }
+
+    // Evitar repetir exactamente el mismo si se presiona "Sortear otro" y hay más de 1 candidato
+    if (forzarManual && candidatos.length > 1 && dailyWinnerPhone) {
+      candidatos = candidatos.filter(c => c.telefono !== dailyWinnerPhone);
+    }
+
+    const totalTickets = candidatos.reduce((acc, c) => acc + c.scoreTotal, 0);
+    let randomTicket = Math.random() * totalTickets;
+    let elegido = candidatos[0];
+
+    for (const cand of candidatos) {
+      randomTicket -= cand.scoreTotal;
+      if (randomTicket <= 0) {
+        elegido = cand;
+        break;
+      }
+    }
+
+    const todayKey = getToday().toISOString().split('T')[0];
+
+    if (forzarManual) {
+      setIsSpinningWinner(true);
+      let step = 0;
+      const interval = setInterval(() => {
+        const randomPreview = candidatos[Math.floor(Math.random() * candidatos.length)];
+        setRoulettePreviewName(randomPreview?.nombre || '');
+        step++;
+        if (step >= 10) {
+          clearInterval(interval);
+          setIsSpinningWinner(false);
+          setDailyWinnerPhone(elegido.telefono);
+          localStorage.setItem('kgb_daily_winner_v1', JSON.stringify({ date: todayKey, phone: elegido.telefono }));
+        }
+      }, 75);
+    } else {
+      setDailyWinnerPhone(elegido.telefono);
+      localStorage.setItem('kgb_daily_winner_v1', JSON.stringify({ date: todayKey, phone: elegido.telefono }));
+    }
+  }, [clientesCalificados, pamperedPhones, dailyWinnerPhone]);
+
+  // Seleccionar automáticamente al ganador del día al abrir el programa
+  useEffect(() => {
+    if (clientesCalificados.length > 0) {
+      const existeActual = dailyWinnerPhone && clientesCalificados.some(c => c.telefono === dailyWinnerPhone);
+      if (!existeActual) {
+        realizarSorteoInteligente(false);
+      }
+    }
+  }, [clientesCalificados, dailyWinnerPhone, realizarSorteoInteligente]);
+
+  const ganadorDelDia = useMemo(() => {
+    if (clientesCalificados.length === 0) return null;
+    return clientesCalificados.find(c => c.telefono === dailyWinnerPhone) || clientesCalificados[0];
+  }, [clientesCalificados, dailyWinnerPhone]);
+
+  const marcarComoEngreidoHoy = ( PasarAlSiguiente = false ) => {
+    if (!ganadorDelDia) return;
+    const nuevosEngreidos = Array.from(new Set([...pamperedPhones, ganadorDelDia.telefono]));
+    setPamperedPhones(nuevosEngreidos);
+    localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify(nuevosEngreidos));
+    if (showToast) showToast(`¡${ganadorDelDia.nombre} marcado como engreído en este ciclo!`);
+    if (PasarAlSiguiente) {
+      realizarSorteoInteligente(true, nuevosEngreidos);
+    }
+  };
+
+  const yaFueEngreidoEnCiclo = ganadorDelDia && pamperedPhones.includes(ganadorDelDia.telefono);
+  const freeEsetCount = stockAV.filter(k => k.producto && k.producto.includes('ESET') && k.estado === 'Disponible').length;
+
   const alertasFiltradas = urgentClients.filter(c => {
     if (filtroAlertas === 'propias') return c.categoria === 'streaming' && c.idMaster && c.daysRemaining >= 0;
     if (filtroAlertas === 'externas') return c.categoria === 'streaming' && !c.idMaster && c.daysRemaining >= 0;
@@ -376,6 +541,111 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal }) => {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div><h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1><p className="text-slate-500 mt-1">Resumen general y alertas operativas sincronizadas.</p></div>
+
+      {/* ========================================== */}
+      {/* CEREZA DEL PASTEL: SORTEO INTELIGENTE DEL DÍA (100% INTERNO) */}
+      {/* ========================================== */}
+      {ganadorDelDia && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-xl border border-indigo-500/30">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2.5 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center">
+                  <Gift className="w-3.5 h-3.5 mr-1.5" /> Sorteo Interno del Día • Cliente a Engreír Hoy
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-bold">
+                  Ciclo Total: {Math.min(pamperedPhones.length, clientesCalificados.length)} / {clientesCalificados.length} clientes premiados
+                </span>
+                {yaFueEngreidoEnCiclo && (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black flex items-center">
+                    <Check className="w-3.5 h-3.5 mr-1" /> ¡Ya engreído hoy!
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                  {isSpinningWinner ? (
+                    <span className="text-amber-300 animate-pulse">🎲 Sorteando: {roulettePreviewName}...</span>
+                  ) : (
+                    ganadorDelDia.nombre
+                  )}
+                </h2>
+                {!isSpinningWinner && (
+                  <div className="flex items-center space-x-1 bg-white/10 px-3 py-1 rounded-xl w-fit">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <Star
+                        key={idx}
+                        className={`w-4 h-4 ${idx < ganadorDelDia.estrellas ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`}
+                      />
+                    ))}
+                    <span className="text-xs font-bold text-amber-200 ml-1.5">{ganadorDelDia.nivelTexto}</span>
+                  </div>
+                )}
+              </div>
+
+              {!isSpinningWinner && (
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-300 font-medium">
+                  <span>📱 WhatsApp: <strong className="text-white font-mono">+{ganadorDelDia.telefono}</strong></span>
+                  <span>📺 Servicios/Renovaciones: <strong className="text-amber-300">{ganadorDelDia.totalServicios} ({ganadorDelDia.serviciosList.join(', ')})</strong></span>
+                  <span>⏳ Antigüedad: <strong className="text-emerald-300">{ganadorDelDia.maxAntiguedadDias} días con nosotros</strong></span>
+                  <span>🎟️ Probabilidad Fiel: <strong className="text-indigo-300">{ganadorDelDia.scoreTotal} pts</strong></span>
+                </div>
+              )}
+            </div>
+
+            {/* BOTONES DE ACCIÓN RÁPIDA PARA ENGREÍR AL GANADOR */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  handleGiveGift(ganadorDelDia.baseClient);
+                  marcarComoEngreidoHoy(false);
+                }}
+                disabled={isSpinningWinner || freeEsetCount === 0}
+                className="px-4 py-3 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
+                title="Le envía una licencia ESET Mobile gratis y lo marca como engreído"
+              >
+                <Key className="w-4 h-4 mr-1.5" /> Regalar ESET ({freeEsetCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  marcarComoEngreidoHoy(false);
+                  setActiveTab('regalos_vip');
+                }}
+                disabled={isSpinningWinner}
+                className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
+                title="Ir al módulo de Regalos VIP HBO por 10 o 15 días"
+              >
+                <Gift className="w-4 h-4 mr-1.5" /> Regalar HBO VIP
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWaActionModal(ganadorDelDia.baseClient)}
+                disabled={isSpinningWinner}
+                className="px-3.5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
+                title="Enviar oferta o descuento del catálogo"
+              >
+                <MessageCircle className="w-4 h-4 mr-1.5" /> Oferta
+              </button>
+
+              <button
+                type="button"
+                onClick={() => marcarComoEngreidoHoy(true)}
+                disabled={isSpinningWinner}
+                className="px-3.5 py-3 bg-white/10 hover:bg-white/20 text-amber-300 border border-white/15 font-bold rounded-2xl text-xs flex items-center transition-all"
+                title="Marca a este cliente como ya premiado en este ciclo y sortea al siguiente"
+              >
+                <RefreshCw className={`w-4 h-4 mr-1.5 ${isSpinningWinner ? 'animate-spin' : ''}`} /> Sortear Otro
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Propias</div> <div className="text-3xl font-black text-blue-600">{stats.streamingPropios}</div> </div><div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center"><MonitorPlay className="w-6 h-6 text-blue-500" /></div></div>
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Externas</div> <div className="text-3xl font-black text-indigo-600">{stats.streamingExternos}</div> </div><div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center"><Cloud className="w-6 h-6 text-indigo-500" /></div></div>
@@ -2824,7 +3094,7 @@ export default function App() {
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-7xl mx-auto h-full">
-              {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} />}
+              {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} processedClients={processedClients} stockAV={stockAV} handleGiveGift={handleGiveGift} setActiveTab={setActiveTab} showToast={showToast} />}
               {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'regalos_vip' && <RegalosVipHboView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} plantillas={plantillas} setPlantillas={setPlantillas} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
