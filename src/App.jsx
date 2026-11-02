@@ -316,41 +316,156 @@ const buildVipGiftMessage = ({
 // ==========================================
 // 3. COMPONENTES DE INTERFAZ (UI)
 // ==========================================
+const KgbNeonLogo = ({ size = 'md', showText = false }) => {
+  const [imgError, setImgError] = useState(false);
+  const dimensions = size === 'xl' ? 'w-32 h-32' : size === 'lg' ? 'w-16 h-16' : size === 'sm' ? 'w-9 h-9' : 'w-12 h-12';
+
+  return (
+    <div className="inline-flex items-center select-none">
+      <div className={`relative ${dimensions} flex items-center justify-center flex-shrink-0 group`}>
+        {/* Halo de luz neón cian y púrpura detrás del escudo */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-600 blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        {!imgError ? (
+          <img
+            src="/logo.png"
+            alt="KGB Streaming"
+            onError={() => setImgError(true)}
+            className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_12px_rgba(0,240,255,0.7)]"
+          />
+        ) : (
+          <svg viewBox="0 0 240 240" className="relative z-10 w-full h-full drop-shadow-[0_0_12px_rgba(0,240,255,0.65)]">
+            <defs>
+              <linearGradient id="kgbNeonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#00f2fe" />
+                <stop offset="45%" stopColor="#4f46e5" />
+                <stop offset="100%" stopColor="#d946ef" />
+              </linearGradient>
+              <linearGradient id="kgbTextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#00f5ff" />
+                <stop offset="50%" stopColor="#6366f1" />
+                <stop offset="100%" stopColor="#e879f9" />
+              </linearGradient>
+              <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            {/* Rayos eléctricos exteriores */}
+            <path d="M40 55 L22 40 L35 72 L18 85" stroke="#00f2fe" strokeWidth="2.5" fill="none" opacity="0.85" />
+            <path d="M200 55 L218 40 L205 72 L222 85" stroke="#d946ef" strokeWidth="2.5" fill="none" opacity="0.85" />
+            <path d="M38 175 L20 190 L48 195" stroke="#00f2fe" strokeWidth="2.5" fill="none" opacity="0.8" />
+            <path d="M202 175 L220 190 L192 195" stroke="#d946ef" strokeWidth="2.5" fill="none" opacity="0.8" />
+
+            {/* Escudo Hexagonal Fondo Oscuro */}
+            <polygon
+              points="120,14 214,62 196,174 120,226 44,174 26,62"
+              fill="#050614"
+              stroke="url(#kgbNeonGrad)"
+              strokeWidth="7"
+              filter="url(#neonGlow)"
+            />
+            {/* Borde interior neón */}
+            <polygon
+              points="120,24 203,67 187,167 120,214 53,167 37,67"
+              fill="none"
+              stroke="url(#kgbNeonGrad)"
+              strokeWidth="2"
+              opacity="0.7"
+            />
+
+            {/* Letras KGB con estilo futurista */}
+            <text
+              x="120"
+              y="132"
+              textAnchor="middle"
+              fill="url(#kgbTextGrad)"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+              fontFamily="Arial Black, Impact, sans-serif"
+              fontWeight="900"
+              fontStyle="italic"
+              fontSize="64"
+              letterSpacing="1"
+              filter="url(#neonGlow)"
+            >
+              KGB
+            </text>
+
+            {/* Triángulo Play dentro de la G */}
+            <polygon points="117,106 117,122 131,114" fill="#e879f9" />
+
+            {/* Subtítulo STREAMING */}
+            <text
+              x="120"
+              y="162"
+              textAnchor="middle"
+              fill="#ffffff"
+              fontFamily="Arial, sans-serif"
+              fontWeight="900"
+              fontSize="16"
+              letterSpacing="5.5"
+            >
+              STREAMING
+            </text>
+          </svg>
+        )}
+      </div>
+
+      {showText && (
+        <div className="ml-3 flex flex-col">
+          <div className="flex items-center font-black text-xl tracking-wider italic leading-none">
+            <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(0,242,254,0.35)]">
+              KGB
+            </span>
+            <span className="text-fuchsia-400 text-xs ml-1.5 not-italic font-extrabold px-1.5 py-0.5 rounded bg-fuchsia-500/10 border border-fuchsia-500/30">
+              PRO
+            </span>
+          </div>
+          <span className="text-[10px] font-black tracking-[0.28em] text-slate-300 uppercase mt-1">
+            STREAMING
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, setIsAuthenticated }) => (
   <>
-    {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm animate-fadeIn" onClick={() => setIsMobileMenuOpen(false)} />}
-    <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-2xl`}>
-      <div className="p-6 bg-slate-950 flex justify-between items-center border-b border-slate-800">
-        <div className="flex items-center text-white font-black text-xl tracking-tight">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-blue-500/20"><MonitorPlay className="w-5 h-5 text-white" /></div>
-          KGB <span className="text-blue-500 ml-1.5">App</span>
-        </div>
-        <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+    {isMobileMenuOpen && <div className="fixed inset-0 bg-[#050514]/80 z-40 md:hidden backdrop-blur-md animate-fadeIn" onClick={() => setIsMobileMenuOpen(false)} />}
+    <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[4px_0_30px_rgba(0,240,255,0.12)] border-r border-cyan-500/20`}>
+      <div className="p-5 bg-[#040510] flex justify-between items-center border-b border-fuchsia-500/20 relative overflow-hidden">
+        <div className="absolute -left-6 -top-6 w-24 h-24 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-fuchsia-500/15 rounded-full blur-2xl pointer-events-none"></div>
+        <KgbNeonLogo size="md" showText={true} />
+        <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-cyan-400"><X className="w-6 h-6" /></button>
       </div>
       
-      <div className="flex-1 overflow-y-auto py-6 flex flex-col space-y-1 px-3">
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3 mt-4">Principal</div>
-        <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600/10 text-blue-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><LayoutDashboard className="w-5 h-5 mr-3" /> Panel de Control</button>
-        <button onClick={() => { setActiveTab('catalogo'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'catalogo' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Star className="w-5 h-5 mr-3" /> Catálogo y Ofertas</button>
-        <button onClick={() => { setActiveTab('campanas'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'campanas' ? 'bg-pink-600/10 text-pink-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Gift className="w-5 h-5 mr-3" /> Campañas y Regalos</button>
-        <button onClick={() => { setActiveTab('regalos_vip'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'regalos_vip' ? 'bg-indigo-600/20 text-indigo-400 font-bold border border-indigo-500/30' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Gift className="w-5 h-5 mr-3 text-indigo-400" /> Regalos VIP (HBO)</button>
+      <div className="flex-1 overflow-y-auto py-6 flex flex-col space-y-1.5 px-3">
+        <div className="text-[11px] font-black text-cyan-400/70 uppercase tracking-widest mb-2 px-3 mt-2">Principal</div>
+        <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-500/20 via-blue-600/20 to-fuchsia-600/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(0,242,254,0.2)]' : 'hover:bg-white/5 hover:text-cyan-200'}`}><LayoutDashboard className="w-5 h-5 mr-3 text-cyan-400" /> Panel de Control</button>
+        <button onClick={() => { setActiveTab('catalogo'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'catalogo' ? 'bg-gradient-to-r from-cyan-500/20 to-fuchsia-600/20 text-fuchsia-300 font-black border border-fuchsia-400/40 shadow-[0_0_15px_rgba(217,70,239,0.2)]' : 'hover:bg-white/5 hover:text-fuchsia-200'}`}><Star className="w-5 h-5 mr-3 text-fuchsia-400" /> Catálogo y Ofertas</button>
+        <button onClick={() => { setActiveTab('campanas'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'campanas' ? 'bg-gradient-to-r from-fuchsia-600/20 to-purple-600/20 text-pink-300 font-black border border-pink-400/40 shadow-[0_0_15px_rgba(236,72,153,0.2)]' : 'hover:bg-white/5 hover:text-pink-200'}`}><Gift className="w-5 h-5 mr-3 text-pink-400" /> Campañas y Regalos</button>
+        <button onClick={() => { setActiveTab('regalos_vip'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'regalos_vip' ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-600/25 to-fuchsia-600/25 text-cyan-200 font-black border border-cyan-400/40 shadow-[0_0_18px_rgba(168,85,247,0.25)]' : 'hover:bg-white/5 hover:text-indigo-200'}`}><Gift className="w-5 h-5 mr-3 text-cyan-400" /> Regalos VIP (HBO)</button>
 
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3 mt-6">Servicios y Licencias</div>
-        <button onClick={() => { setActiveTab('streaming'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'streaming' ? 'bg-blue-600/10 text-blue-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><MonitorPlay className="w-5 h-5 mr-3" /> Streaming</button>
-        <button onClick={() => { setActiveTab('software'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'software' ? 'bg-cyan-600/10 text-cyan-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Briefcase className="w-5 h-5 mr-3" /> Software Profesional</button>
-        <button onClick={() => { setActiveTab('antivirus'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'antivirus' ? 'bg-purple-600/10 text-purple-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><ShieldCheck className="w-5 h-5 mr-3" /> Antivirus</button>
-        <button onClick={() => { setActiveTab('masters'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'masters' ? 'bg-orange-600/10 text-orange-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Server className="w-5 h-5 mr-3" /> Cuentas Máster</button>
-        <button onClick={() => { setActiveTab('stock_av'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'stock_av' ? 'bg-emerald-600/10 text-emerald-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Key className="w-5 h-5 mr-3" /> Stock Antivirus</button>
+        <div className="text-[11px] font-black text-fuchsia-400/70 uppercase tracking-widest mb-2 px-3 mt-6">Servicios y Licencias</div>
+        <button onClick={() => { setActiveTab('streaming'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'streaming' ? 'bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(0,242,254,0.2)]' : 'hover:bg-white/5 hover:text-cyan-200'}`}><MonitorPlay className="w-5 h-5 mr-3 text-cyan-400" /> Streaming</button>
+        <button onClick={() => { setActiveTab('software'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'software' ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'hover:bg-white/5 hover:text-cyan-200'}`}><Briefcase className="w-5 h-5 mr-3 text-cyan-400" /> Software Profesional</button>
+        <button onClick={() => { setActiveTab('antivirus'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'antivirus' ? 'bg-gradient-to-r from-purple-600/25 to-fuchsia-600/25 text-fuchsia-300 font-black border border-fuchsia-400/40 shadow-[0_0_15px_rgba(217,70,239,0.2)]' : 'hover:bg-white/5 hover:text-fuchsia-200'}`}><ShieldCheck className="w-5 h-5 mr-3 text-fuchsia-400" /> Antivirus</button>
+        <button onClick={() => { setActiveTab('masters'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'masters' ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-indigo-300 font-black border border-indigo-400/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'hover:bg-white/5 hover:text-indigo-200'}`}><Server className="w-5 h-5 mr-3 text-indigo-400" /> Cuentas Máster</button>
+        <button onClick={() => { setActiveTab('stock_av'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'stock_av' ? 'bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(0,242,254,0.2)]' : 'hover:bg-white/5 hover:text-emerald-200'}`}><Key className="w-5 h-5 mr-3 text-cyan-400" /> Stock Antivirus</button>
         
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3 mt-6">Administración</div>
-        <button onClick={() => { setActiveTab('configuracion'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'configuracion' ? 'bg-slate-700 text-white font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Settings className="w-5 h-5 mr-3" /> Configuración</button>
+        <div className="text-[11px] font-black text-cyan-400/70 uppercase tracking-widest mb-2 px-3 mt-6">Administración</div>
+        <button onClick={() => { setActiveTab('configuracion'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'configuracion' ? 'bg-gradient-to-r from-cyan-500/20 to-fuchsia-500/20 text-white font-black border border-cyan-400/40' : 'hover:bg-white/5 hover:text-slate-100'}`}><Settings className="w-5 h-5 mr-3 text-fuchsia-400" /> Configuración</button>
       </div>
 
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-cyan-500/20 bg-[#040510]">
         <button onClick={() => {
           localStorage.removeItem('kgb_auth');
           setIsAuthenticated(false);
-        }} className="flex items-center justify-center w-full px-4 py-2 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all font-bold text-sm">
+        }} className="flex items-center justify-center w-full px-4 py-2.5 bg-gradient-to-r from-red-600/15 to-fuchsia-600/15 text-red-400 border border-red-500/30 hover:from-red-600 hover:to-fuchsia-600 hover:text-white rounded-xl transition-all font-bold text-sm shadow-sm">
           <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
         </button>
       </div>
@@ -540,20 +655,27 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div><h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1><p className="text-slate-500 mt-1">Resumen general y alertas operativas sincronizadas.</p></div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-fuchsia-600 bg-clip-text text-transparent">Panel de Control KGB</h1>
+          <p className="text-slate-500 mt-1 font-medium">Resumen general y alertas operativas sincronizadas.</p>
+        </div>
+      </div>
 
       {/* ========================================== */}
       {/* CEREZA DEL PASTEL: SORTEO INTELIGENTE DEL DÍA (100% INTERNO) */}
       {/* ========================================== */}
       {ganadorDelDia && (
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-xl border border-indigo-500/30">
+        <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40">
+          <div className="absolute -left-16 -top-16 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-fuchsia-600/25 rounded-full blur-3xl pointer-events-none"></div>
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
             <div className="space-y-2.5 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center">
-                  <Gift className="w-3.5 h-3.5 mr-1.5" /> Sorteo Interno del Día • Cliente a Engreír Hoy
+                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-cyan-500/25 to-fuchsia-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-black uppercase tracking-wider flex items-center shadow-[0_0_12px_rgba(0,240,255,0.25)]">
+                  <Gift className="w-3.5 h-3.5 mr-1.5 text-fuchsia-400" /> Sorteo Interno KGB • Cliente a Engreír Hoy
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-bold">
+                <span className="px-2.5 py-1 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/30 text-fuchsia-200 text-xs font-bold">
                   Ciclo Total: {Math.min(pamperedPhones.length, clientesCalificados.length)} / {clientesCalificados.length} clientes premiados
                 </span>
                 {yaFueEngreidoEnCiclo && (
@@ -647,10 +769,10 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Propias</div> <div className="text-3xl font-black text-blue-600">{stats.streamingPropios}</div> </div><div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center"><MonitorPlay className="w-6 h-6 text-blue-500" /></div></div>
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Externas</div> <div className="text-3xl font-black text-indigo-600">{stats.streamingExternos}</div> </div><div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center"><Cloud className="w-6 h-6 text-indigo-500" /></div></div>
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Stock Antivirus</div> <div className="text-3xl font-black text-emerald-600">{stats.llavesDisponibles}</div> </div><div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center"><Key className="w-6 h-6 text-emerald-500" /></div></div>
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Clientes Software</div> <div className="text-3xl font-black text-cyan-600">{stats.software}</div> </div><div className="w-12 h-12 rounded-full bg-cyan-50 flex items-center justify-center"><Briefcase className="w-6 h-6 text-cyan-500" /></div></div>
+        <div className="p-5 rounded-2xl bg-white border-2 border-cyan-500/25 shadow-[0_4px_20px_rgba(0,240,255,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Propias</div> <div className="text-3xl font-black text-cyan-600">{stats.streamingPropios}</div> </div><div className="w-12 h-12 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center"><MonitorPlay className="w-6 h-6 text-cyan-500" /></div></div>
+        <div className="p-5 rounded-2xl bg-white border-2 border-blue-500/25 shadow-[0_4px_20px_rgba(59,130,246,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Externas</div> <div className="text-3xl font-black text-blue-600">{stats.streamingExternos}</div> </div><div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center"><Cloud className="w-6 h-6 text-blue-500" /></div></div>
+        <div className="p-5 rounded-2xl bg-white border-2 border-fuchsia-500/25 shadow-[0_4px_20px_rgba(217,70,239,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Stock Antivirus</div> <div className="text-3xl font-black text-fuchsia-600">{stats.llavesDisponibles}</div> </div><div className="w-12 h-12 rounded-2xl bg-fuchsia-50 border border-fuchsia-200 flex items-center justify-center"><Key className="w-6 h-6 text-fuchsia-500" /></div></div>
+        <div className="p-5 rounded-2xl bg-white border-2 border-purple-500/25 shadow-[0_4px_20px_rgba(168,85,247,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Clientes Software</div> <div className="text-3xl font-black text-purple-600">{stats.software}</div> </div><div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center"><Briefcase className="w-6 h-6 text-purple-500" /></div></div>
       </div>
       
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
@@ -3038,42 +3160,49 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen bg-slate-950 items-center justify-center font-sans text-slate-300 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-          <div className="w-[800px] h-[800px] bg-blue-600 rounded-full blur-[150px] mix-blend-screen"></div>
-        </div>
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div className="flex h-screen bg-[#040511] items-center justify-center font-sans text-slate-300 relative overflow-hidden">
+        <div className="absolute -left-24 top-1/4 w-[550px] h-[550px] bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none"></div>
+        <div className="absolute -right-24 bottom-1/4 w-[550px] h-[550px] bg-fuchsia-600/20 rounded-full blur-[140px] pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f2fe10_1px,transparent_1px),linear-gradient(to_bottom,#d946ef10_1px,transparent_1px)] bg-[size:28px_28px]"></div>
 
         <div className="relative z-10 w-full max-w-md p-8 animate-fadeIn">
-          <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-[0_0_40px_rgba(37,99,235,0.15)] flex flex-col items-center">
-            <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-6 relative">
-              {isAuthenticating ? <Loader2 className="w-10 h-10 text-blue-500 animate-spin" /> : <Shield className="w-10 h-10 text-blue-500" />}
-              <div className="absolute inset-0 rounded-full border-2 border-blue-500/30 animate-ping"></div>
+          <div className="bg-[#080a1c]/90 backdrop-blur-xl border-2 border-cyan-400/30 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,240,255,0.22)] flex flex-col items-center relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500"></div>
+
+            <div className="mb-5 relative">
+              <KgbNeonLogo size="xl" showText={false} />
+              {isAuthenticating && (
+                <div className="absolute -bottom-2 -right-2 bg-[#080a1c] p-1.5 rounded-full border border-cyan-400">
+                  <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+                </div>
+              )}
             </div>
             
-            <h1 className="text-2xl font-black text-white mb-2 tracking-tight uppercase">{parametros.nombreNegocio}</h1>
-            <p className="text-slate-400 text-sm font-medium mb-8 text-center">
-              {isAuthenticating ? 'Desencriptando base de datos y cargando sistema...' : 'Acceso restringido al personal autorizado'}
+            <h1 className="text-3xl font-black italic tracking-wider bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent mb-1 uppercase">
+              {parametros.nombreNegocio}
+            </h1>
+            <p className="text-slate-400 text-xs font-bold tracking-wide mb-8 text-center">
+              {isAuthenticating ? '⚡ Desencriptando base de datos y sincronizando...' : 'ACCESO EXCLUSIVO • CENTRAL OPERATIVA'}
             </p>
 
             <form onSubmit={handleLogin} className="w-full space-y-5">
               <div className="relative">
-                <Lock className="w-5 h-5 absolute left-4 top-3.5 text-slate-500" />
+                <Lock className="w-5 h-5 absolute left-4 top-3.5 text-cyan-400" />
                 <input type="password" autoFocus disabled={isAuthenticating} placeholder="Ingrese su contraseña" 
-                  className={`w-full bg-slate-950 border ${loginError ? 'border-red-500 focus:border-red-500' : 'border-slate-800 focus:border-blue-500'} rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all font-mono tracking-widest`}
+                  className={`w-full bg-[#040511] border-2 ${loginError ? 'border-red-500 focus:border-red-500' : 'border-cyan-500/30 focus:border-fuchsia-500'} rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all font-mono tracking-widest shadow-inner`}
                   value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)}
                 />
-                {loginError && <p className="text-xs text-red-500 font-bold mt-2 absolute -bottom-5 left-1">Contraseña incorrecta, acceso denegado.</p>}
+                {loginError && <p className="text-xs text-red-400 font-bold mt-2 absolute -bottom-5 left-1">Contraseña incorrecta, acceso denegado.</p>}
               </div>
 
               <button type="submit" disabled={isAuthenticating || !passwordInput}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white font-bold rounded-xl py-3.5 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                className="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-xl py-3.5 transition-all flex items-center justify-center shadow-[0_0_25px_rgba(0,240,255,0.35)] uppercase tracking-wider text-sm"
               >
-                {isAuthenticating ? <>Iniciando Sistema <Loader2 className="w-5 h-5 ml-2 animate-spin" /></> : <>Autenticar <Terminal className="w-5 h-5 ml-2" /></>}
+                {isAuthenticating ? <>Iniciando Sistema <Loader2 className="w-5 h-5 ml-2 animate-spin" /></> : <>Entrar al Panel <Terminal className="w-5 h-5 ml-2" /></>}
               </button>
             </form>
           </div>
-          <div className="text-center mt-6 text-xs text-slate-600 font-mono">SECURE CONNECTION • 256-BIT ENCRYPTED</div>
+          <div className="text-center mt-6 text-xs text-cyan-400/60 font-mono tracking-widest">KGB NEON SHIELD • 256-BIT ENCRYPTED</div>
         </div>
       </div>
     );
@@ -3081,18 +3210,26 @@ export default function App() {
 
   return (
     <>
-      <style>{`.animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-      <div className="flex h-screen bg-slate-100 font-sans text-slate-900 overflow-hidden">
+      <style>{`
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+      <div className="flex h-screen bg-[#f3f5fb] font-sans text-slate-900 overflow-hidden">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} setIsAuthenticated={setIsAuthenticated} />
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          <header className="bg-white shadow-sm border-b px-4 md:px-6 py-4 flex justify-between items-center z-10">
+          <header className="bg-[#080a1c] text-white shadow-[0_4px_20px_rgba(0,240,255,0.12)] border-b border-cyan-500/30 px-4 md:px-6 py-3.5 flex justify-between items-center z-10 relative">
+            <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500"></div>
             <div className="flex items-center">
-              <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mr-3 text-slate-500 hover:bg-slate-100 p-1 rounded-md"><Menu className="w-6 h-6" /></button>
-              <div className="font-bold text-slate-800 md:text-slate-400 uppercase text-xs md:text-sm truncate"><span className="hidden sm:inline">Plataforma Operativa - </span>{parametros.nombreNegocio}</div>
+              <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mr-3 text-cyan-400 hover:bg-white/10 p-1.5 rounded-lg"><Menu className="w-6 h-6" /></button>
+              <div className="mr-3 hidden sm:block"><KgbNeonLogo size="sm" showText={false} /></div>
+              <div className="font-black tracking-wider uppercase text-xs md:text-sm truncate flex items-center">
+                <span className="hidden sm:inline text-slate-400 mr-2">PLATAFORMA OPERATIVA •</span>
+                <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent">{parametros.nombreNegocio}</span>
+              </div>
             </div>
             <SyncIndicator />
           </header>
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-slate-100 to-fuchsia-500/5">
             <div className="max-w-7xl mx-auto h-full">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} processedClients={processedClients} stockAV={stockAV} handleGiveGift={handleGiveGift} setActiveTab={setActiveTab} showToast={showToast} />}
               {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
