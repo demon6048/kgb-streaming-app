@@ -49,6 +49,12 @@ const addMonthsToDate = (dateString, months) => {
   return d.toISOString().split('T')[0];
 };
 
+const addDaysToDate = (dateString, days) => {
+  const d = parseDateString(dateString) || getToday();
+  d.setDate(d.getDate() + parseInt(days || 0, 10));
+  return d.toISOString().split('T')[0];
+};
+
 const parseLicenseText = (text) => {
   if (!text) return null;
   const lines = text.split('\n').map(l => l.trim()).filter(l => l);
@@ -214,6 +220,100 @@ const buildCatalogOfferMessage = ({ clientName, productObj, discountPercent = 0,
 };
 
 // ==========================================
+// 2.2 MOTOR ANTI-SPAM PARA REGALOS VIP (HBO / ENGANCHE SILENCIOSO)
+// ==========================================
+const VIP_CONFIG_ID = 'PL_VIP_HBO_CONFIG';
+
+const CABECERAS_REGALO_VIP = [
+  "¡Hola *{nombre}*! 👋 Espero que todo vaya excelente. Hoy habilitamos una cuenta Premium de *{producto}* en *{negocio}* y, como te tenemos mucho aprecio, quise separarte un perfil de regalo totalmente GRATIS para ti:",
+  "¡Qué tal, *{nombre}*! 🌟 Paso a saludarte personalmente desde *{negocio}*. Te cuento que acabo de activar una cuenta de *{producto}* y te asigné un perfil de cortesía sin ningún costo para que lo disfrutes en casa:",
+  "¡Hola *{nombre}*! 😊 Un gusto saludarte. En *{negocio}* seleccionamos a un grupo muy reducido de clientes especiales para obsequiarles acceso directo a *{producto}*, y aquí tienes tu perfil listo:",
+  "¡Buen día, *{nombre}*! 🍿 Qué tal todo. Te escribo porque hoy liberamos accesos VIP de *{producto}* en *{negocio}* y quise darte la sorpresa enviándote un perfil gratuito para que veas tus series y películas favoritas:",
+  "¡Hola, qué tal *{nombre}*! 👋 Te saluda el equipo de *{negocio}*. Queríamos tener un detalle especial contigo hoy y te hemos activado un perfil de regalo en *{producto}*. Aquí tienes tus accesos:",
+  "¡Saludos, *{nombre}*! ✨ Espero que estés teniendo una gran semana. Sin ningún compromiso, en *{negocio}* te hemos separado un perfil gratuito de *{producto}* como agradecimiento por tu confianza:",
+  "¡Hola *{nombre}*! 💙 Paso rapidito por aquí desde *{negocio}* para dejarte un regalo sorpresa. Te habilité un perfil exclusivo en *{producto}* para que puedas entrar desde hoy mismo:",
+  "¡Qué tal *{nombre}*! 🙌 Hoy estuvimos organizando nuestras cuentas VIP en *{negocio}* y nos acordamos de ti. Te regalo este acceso directo a *{producto}* para que lo disfrutes:",
+  "¡Hola *{nombre}*! 🎁 Como eres parte importante de *{negocio}*, hoy queremos sorprenderte con un acceso de cortesía a *{producto}*. Ya está activo y listo para que ingreses:",
+  "¡Hola, *{nombre}*! 👋 Espero que te encuentres súper bien. Te comparto un acceso gratuito a *{producto}* que te hemos reservado especialmente en *{negocio}*:",
+  "¡Estimado/a *{nombre}*! 😊 Qué gusto saludarte. En *{negocio}* nos gusta premiar a nuestros contactos de confianza, así que te hemos habilitado un perfil sin costo en *{producto}*:",
+  "¡Hola *{nombre}*! 🚀 Te escribo con una sorpresa de parte de *{negocio}*. Te acabo de crear un perfil personal en *{producto}* totalmente de regalo. Mira tus datos de ingreso:",
+  "¡Qué tal, *{nombre}*! 🍿 Si tienes ganas de ver una buena película o serie hoy, en *{negocio}* te acabamos de regalar un perfil activo de *{producto}*. Aquí tienes la cuenta:",
+  "¡Hola *{nombre}*! ✨ Queríamos agradecerte por estar siempre en nuestro contacto de *{negocio}*, por eso te obsequiamos este acceso directo a *{producto}*:",
+  "¡Un saludo cordial, *{nombre}*! 💙 Te escribo personalmente desde *{negocio}* para entregarte este perfil de cortesía de *{producto}* que separamos para ti:",
+  "¡Hola *{nombre}*! 🎉 Hoy tenemos un regalo exclusivo para ti en *{negocio}*. Te hemos asignado un cupo VIP totalmente gratis en *{producto}*. Aquí están las credenciales:",
+  "¡Qué tal *{nombre}*! 😊 Paso a dejarte este obsequio de parte de *{negocio}*. Es un perfil privado de *{producto}* listo para usar en tu TV, celular o computadora:",
+  "¡Hola, *{nombre}*! ⚡ Sin sorteos ni complicaciones, en *{negocio}* decidimos regalarte directamente un acceso a *{producto}* para que lo pruebes y disfrutes:",
+  "¡Buenas, *{nombre}*! 👋 Por aquí te dejamos un detalle especial de *{negocio}*. Acabamos de activar tu perfil gratuito en *{producto}* con estos datos:",
+  "¡Hola *{nombre}*! 🌟 Pensando en darte una sorpresa agradable hoy, desde *{negocio}* te habilitamos un perfil de regalo en *{producto}*:",
+  "¡Qué gusto saludarte, *{nombre}*! 🙌 Te comparto las llaves de tu nuevo perfil de cortesía en *{producto}*, un regalo directo de parte de *{negocio}*:",
+  "¡Hola *{nombre}*! 🎬 Sabemos que un buen momento de entretenimiento siempre cae bien, por eso en *{negocio}* te regalamos este acceso a *{producto}*:",
+  "¡Hola, qué tal *{nombre}*! ✨ Te enviamos de forma exclusiva desde *{negocio}* los datos de acceso a un perfil de *{producto}* que hemos preparado como obsequio para ti:",
+  "¡Saludos *{nombre}*! 👋 Espero que todo marche de maravilla. Te dejo por aquí un acceso VIP de regalo para *{producto}* cortesía de *{negocio}*:",
+  "¡Hola *{nombre}*! 🔥 Te cuento que te acabo de reservar un perfil gratuito de *{producto}* en *{negocio}* para que puedas entrar cuando gustes. Aquí tienes los datos:",
+  "¡Qué tal, *{nombre}*! 💙 En *{negocio}* valoramos mucho a nuestros clientes y amigos, así que hoy te regalamos este perfil activo de *{producto}*:",
+  "¡Hola *{nombre}*! 😊 Te traigo una buena noticia de parte de *{negocio}*: tienes un perfil de *{producto}* activado totalmente gratis a tu nombre:",
+  "¡Buen día *{nombre}*! 🌟 Paso a entregarte un regalo especial de *{negocio}*. Disfruta de *{producto}* sin costo con estas credenciales:",
+  "¡Hola, *{nombre}*! 🍿 Queríamos tener una atención exclusiva contigo desde *{negocio}*, así que te habilitamos este acceso directo a *{producto}*:",
+  "¡Qué tal *{nombre}*! 🎁 Aquí tienes un regalo sorpresa de *{negocio}*: un perfil completo de *{producto}* listo para que ingreses ahora mismo:"
+];
+
+const CIERRES_REGALO_VIP = [
+  "¡Que lo disfrutes muchísimo! Si necesitas ayuda para iniciar sesión, me avisas por aquí. 😊🍿",
+  "¡Disfruta de tus series y películas! Cualquier consulta al ingresar, estoy atento para ayudarte. 💙",
+  "Espero que te guste este detalle. ¡Pásala genial y avísame cuando hayas podido entrar! 🙌✨",
+  "¡Un abrazo! Que disfrutes tu cuenta, aquí estamos por si tienes cualquier duda al conectarte. 😊",
+  "¡Listo para maratonear! Confírmame si pudiste ingresar todo bien. 🎬🔥",
+  "¡Gracias por ser parte de nuestra comunidad! Disfruta tu regalo con total comodidad. 💙🌟",
+  "Si te pide algún código al iniciar sesión en tu TV o celular, escríbeme y te ayudo al instante. ⚡",
+  "¡Que tengas una excelente semana llena de buen entretenimiento! Un saludo cordial. 👋😊",
+  "¡Disfrútalo en casa! Me cuentas qué tal te va con el acceso. 🎉🍿",
+  "Un detalle con mucho aprecio de nuestra parte. ¡Que lo aproveches al máximo! 🌟💙"
+];
+
+const buildVipGiftMessage = ({
+  clientName,
+  platformName,
+  correo,
+  clave,
+  perfil,
+  pin,
+  reglasVip,
+  hideExpiry = true,
+  fechaVencimientoStr = '',
+  headerIdx = null,
+  footerIdx = null
+}) => {
+  const nombreFinal = clientName || 'Cliente';
+  const prodFinal = platformName || 'HBO Max';
+  const hIdx = headerIdx !== null ? (headerIdx % CABECERAS_REGALO_VIP.length) : Math.floor(Math.random() * CABECERAS_REGALO_VIP.length);
+  const fIdx = footerIdx !== null ? (footerIdx % CIERRES_REGALO_VIP.length) : Math.floor(Math.random() * CIERRES_REGALO_VIP.length);
+
+  const cabecera = CABECERAS_REGALO_VIP[hIdx]
+    .replace(/{nombre}/gi, nombreFinal)
+    .replace(/{producto}/gi, prodFinal)
+    .replace(/{negocio}/gi, parametros.nombreNegocio);
+
+  let msg = `${cabecera}\n\n`;
+  msg += `🎬 *TUS ACCESOS VIP (${prodFinal.toUpperCase()}):*\n`;
+  msg += `👤 *Correo:* ${correo || 'Por asignar'}\n`;
+  msg += `🔑 *Contraseña:* ${clave || 'Por asignar'}\n`;
+  msg += `📺 *Perfil Asignado:* Perfil ${perfil || '1'}\n`;
+  if (pin && String(pin).trim() !== '') {
+    msg += `🔐 *PIN del Perfil:* ${pin}\n`;
+  }
+  if (!hideExpiry && fechaVencimientoStr) {
+    msg += `📅 *Válido hasta:* ${fechaVencimientoStr}\n`;
+  }
+
+  if (reglasVip && reglasVip.trim() !== '') {
+    msg += `\n🛡️ *RECOMENDACIONES PARA CONSERVAR TU REGALO:*\n${reglasVip.trim()}\n`;
+  }
+
+  msg += `\n${CIERRES_REGALO_VIP[fIdx]}`;
+  return msg;
+};
+
+// ==========================================
 // 3. COMPONENTES DE INTERFAZ (UI)
 // ==========================================
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, setIsAuthenticated }) => (
@@ -233,6 +333,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
         <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600/10 text-blue-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><LayoutDashboard className="w-5 h-5 mr-3" /> Panel de Control</button>
         <button onClick={() => { setActiveTab('catalogo'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'catalogo' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Star className="w-5 h-5 mr-3" /> Catálogo y Ofertas</button>
         <button onClick={() => { setActiveTab('campanas'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'campanas' ? 'bg-pink-600/10 text-pink-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Gift className="w-5 h-5 mr-3" /> Campañas y Regalos</button>
+        <button onClick={() => { setActiveTab('regalos_vip'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'regalos_vip' ? 'bg-indigo-600/20 text-indigo-400 font-bold border border-indigo-500/30' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Gift className="w-5 h-5 mr-3 text-indigo-400" /> Regalos VIP (HBO)</button>
 
         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3 mt-6">Servicios y Licencias</div>
         <button onClick={() => { setActiveTab('streaming'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'streaming' ? 'bg-blue-600/10 text-blue-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><MonitorPlay className="w-5 h-5 mr-3" /> Streaming</button>
@@ -675,7 +776,7 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
       <div className="flex justify-end"><button onClick={handleAdd} disabled={syncStatus === 'sincronizando'} className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl flex items-center font-bold shadow-md disabled:opacity-50"><Plus className="w-5 h-5 mr-2" /> Nuevo Producto / Plataforma</button></div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-3">
-          {plantillas.map(p => (
+          {plantillas.filter(p => p.id !== VIP_CONFIG_ID).map(p => (
             <div key={p.id} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${editingId === p.id ? 'border-slate-800 bg-slate-50 shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`} onClick={() => { setEditingId(p.id); setFormData(normalizePlantilla(p)); }}>
               <div className="flex justify-between items-start">
                 <div className="font-bold text-slate-800">{p.nombre}</div>
@@ -737,7 +838,8 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
 // 4.1 NUEVO MÓDULO: CATÁLOGO, OFERTAS Y DESCUENTOS ANTI-SPAM
 // ==========================================
 const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, showToast, syncToSheets, syncStatus }) => {
-  const [selectedProductId, setSelectedProductId] = useState(plantillas[0]?.id || '');
+  const catalogItems = useMemo(() => plantillas.filter(p => p.id !== VIP_CONFIG_ID), [plantillas]);
+  const [selectedProductId, setSelectedProductId] = useState(catalogItems[0]?.id || '');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -747,10 +849,10 @@ const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, 
   const [subTab, setSubTab] = useState('cotizador'); // 'cotizador' | 'editor'
 
   useEffect(() => {
-    if (!selectedProductId && plantillas.length > 0) {
-      setSelectedProductId(plantillas[0].id);
+    if (!selectedProductId && catalogItems.length > 0) {
+      setSelectedProductId(catalogItems[0].id);
     }
-  }, [plantillas, selectedProductId]);
+  }, [catalogItems, selectedProductId]);
 
   const clientesUnicos = useMemo(() => {
     const map = new Map();
@@ -771,7 +873,7 @@ const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, 
     ).slice(0, 15);
   }, [clientesUnicos, clientName]);
 
-  const currentProduct = plantillas.find(p => p.id === selectedProductId) || plantillas[0] || null;
+  const currentProduct = catalogItems.find(p => p.id === selectedProductId) || catalogItems[0] || null;
 
   const previewMsg = useMemo(() => {
     if (!currentProduct) return 'Primero agrega un producto o plataforma en la pestaña "Administrar Catálogo".';
@@ -829,7 +931,7 @@ const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, 
             onClick={() => setSubTab('editor')}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${subTab === 'editor' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            ⚙️ Administrar Mi Catálogo ({plantillas.length})
+            ⚙️ Administrar Mi Catálogo ({catalogItems.length})
           </button>
         </div>
       </div>
@@ -921,7 +1023,7 @@ const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, 
                 </button>
               </div>
 
-              {plantillas.length === 0 ? (
+              {catalogItems.length === 0 ? (
                 <div className="p-6 bg-amber-50 border-2 border-amber-200 border-dashed rounded-2xl text-center space-y-3">
                   <p className="text-sm font-bold text-amber-900">Aún no has cargado plataformas en tu catálogo.</p>
                   <button
@@ -933,7 +1035,7 @@ const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, 
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
-                  {plantillas.map(item => {
+                  {catalogItems.map(item => {
                     const isSelected = item.id === (currentProduct?.id);
                     return (
                       <div
@@ -1047,6 +1149,906 @@ const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, 
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// 4.2 NUEVO MÓDULO: REGALOS VIP (HBO / ENGANCHE SILENCIOSO 10-15 DÍAS)
+// ==========================================
+const RegalosVipHboView = ({
+  cuentasMaster,
+  setCuentasMaster,
+  clientes,
+  setClientes,
+  plantillas,
+  setPlantillas,
+  integrantes,
+  codigoPais,
+  showToast,
+  syncToSheets,
+  syncStatus
+}) => {
+  const [subTab, setSubTab] = useState('regalar'); // 'regalar' | 'boveda' | 'config'
+  const [showAllMasters, setShowAllMasters] = useState(false);
+
+  // Configuración persistida en PLANTILLAS bajo VIP_CONFIG_ID
+  const storedConfig = useMemo(() => plantillas.find(p => p.id === VIP_CONFIG_ID), [plantillas]);
+  const [reglasVip, setReglasVip] = useState(
+    storedConfig?.reglas ||
+    '• Ingresa únicamente en el perfil que te hemos asignado.\n• No modifiques la contraseña ni agregues o elimines perfiles para mantener activo tu beneficio.'
+  );
+  const [mensajeConversion, setMensajeConversion] = useState(
+    storedConfig?.beneficios ||
+    '¡Hola *{nombre}*! 👋 Espero que estés disfrutando muchísimo tu perfil VIP de *{producto}* que te regalamos en *{negocio}*. 🍿✨\n\nTe escribo porque tu periodo de cortesía está por culminar, y como ya tienes tu perfil configurado, queríamos ofrecerte conservarlo activo por todo el mes a una tarifa preferencial de cliente exclusivo. ¿Te gustaría mantener tu perfil activo? 😊💙'
+  );
+  const [diasDefaultConfig, setDiasDefaultConfig] = useState(storedConfig?.precio || '15');
+
+  useEffect(() => {
+    if (storedConfig) {
+      if (storedConfig.reglas) setReglasVip(storedConfig.reglas);
+      if (storedConfig.beneficios) setMensajeConversion(storedConfig.beneficios);
+      if (storedConfig.precio) setDiasDefaultConfig(storedConfig.precio);
+    }
+  }, [storedConfig]);
+
+  // Cuentas de la Bóveda VIP (ID empieza con MVIP_ o plataforma contiene HBO/Max)
+  const vipMasters = useMemo(() => {
+    const onlyVip = cuentasMaster.filter(m => String(m.id).startsWith('MVIP_'));
+    if (showAllMasters || onlyVip.length === 0) return cuentasMaster;
+    return onlyVip;
+  }, [cuentasMaster, showAllMasters]);
+
+  // Estado para regalar acceso
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchClientTable, setSearchClientTable] = useState('');
+  const [selectedMasterId, setSelectedMasterId] = useState('');
+  const [assignedProfile, setAssignedProfile] = useState('1');
+  const [assignedPin, setAssignedPin] = useState('');
+  const [giftDays, setGiftDays] = useState(15);
+  const [hideExpiryInWa, setHideExpiryInWa] = useState(true); // "Ellos no lo van a saber"
+  const [headerSeed, setHeaderSeed] = useState(() => Math.floor(Math.random() * CABECERAS_REGALO_VIP.length));
+  const [footerSeed, setFooterSeed] = useState(() => Math.floor(Math.random() * CIERRES_REGALO_VIP.length));
+
+  // Estado para subir nueva cuenta HBO a la bóveda VIP
+  const [newVipAccount, setNewVipAccount] = useState({
+    id: null,
+    plataforma: 'HBO Max',
+    correo: '',
+    clave: '',
+    limitePerfiles: 5,
+    fechaRenovacion: addMonthsToDate(getToday().toISOString().split('T')[0], 1)
+  });
+  const [isCustomVipPlat, setIsCustomVipPlat] = useState(false);
+
+  // Calcular perfil libre automáticamente cuando cambia la cuenta seleccionada
+  const calcularSiguientePerfilLibre = useCallback((masterId) => {
+    if (!masterId) return '1';
+    const ocupados = clientes
+      .filter(c => c.idMaster === masterId && getDaysRemaining(c.fechaVencimiento) >= 0)
+      .map(c => parseInt(c.perfil, 10))
+      .filter(n => !isNaN(n));
+    let sig = 1;
+    while (ocupados.includes(sig)) sig++;
+    return String(sig);
+  }, [clientes]);
+
+  useEffect(() => {
+    if (!selectedMasterId && vipMasters.length > 0) {
+      const firstId = vipMasters[0].id;
+      setSelectedMasterId(firstId);
+      setAssignedProfile(calcularSiguientePerfilLibre(firstId));
+    }
+  }, [vipMasters, selectedMasterId, calcularSiguientePerfilLibre]);
+
+  const currentMaster = cuentasMaster.find(m => m.id === selectedMasterId) || vipMasters[0] || null;
+
+  const clientesUnicos = useMemo(() => {
+    const map = new Map();
+    clientes.forEach(c => {
+      if (c.telefono && c.nombre && !map.has(String(c.telefono))) {
+        map.set(String(c.telefono), c);
+      }
+    });
+    return Array.from(map.values());
+  }, [clientes]);
+
+  const sugerencias = useMemo(() => {
+    if (!clientName.trim()) return clientesUnicos.slice(0, 15);
+    const term = clientName.toLowerCase();
+    return clientesUnicos.filter(c =>
+      String(c.nombre).toLowerCase().includes(term) ||
+      String(c.telefono).includes(term)
+    ).slice(0, 15);
+  }, [clientesUnicos, clientName]);
+
+  const clientesFiltradosTabla = useMemo(() => {
+    const term = searchClientTable.toLowerCase();
+    return clientesUnicos.filter(c =>
+      String(c.nombre).toLowerCase().includes(term) ||
+      String(c.telefono).includes(term) ||
+      String(c.servicio || '').toLowerCase().includes(term)
+    ).slice(0, 12);
+  }, [clientesUnicos, searchClientTable]);
+
+  const todayStr = getToday().toISOString().split('T')[0];
+  const calculatedExpiryStr = addDaysToDate(todayStr, giftDays);
+
+  const previewVipMessage = useMemo(() => {
+    return buildVipGiftMessage({
+      clientName: clientName.trim() || 'Cliente Exclusivo',
+      platformName: currentMaster?.plataforma || 'HBO Max',
+      correo: currentMaster?.correo || 'cuenta@hbomax.com',
+      clave: currentMaster?.clave || 'ClaveVIP123',
+      perfil: assignedProfile || '1',
+      pin: assignedPin,
+      reglasVip,
+      hideExpiry: hideExpiryInWa,
+      fechaVencimientoStr: formatDateToLocal(calculatedExpiryStr),
+      headerIdx: headerSeed,
+      footerIdx: footerSeed
+    });
+  }, [clientName, currentMaster, assignedProfile, assignedPin, reglasVip, hideExpiryInWa, calculatedExpiryStr, headerSeed, footerSeed]);
+
+  const handleSaveAndSendVipGift = async () => {
+    if (!currentMaster) {
+      showToast('Primero sube o selecciona una cuenta de HBO / Streaming para regalar', 'error');
+      setSubTab('boveda');
+      return;
+    }
+    if (!clientName.trim() || !clientPhone.trim()) {
+      showToast('Selecciona o escribe el nombre y WhatsApp del cliente', 'error');
+      return;
+    }
+
+    const newGiftClient = {
+      id: `C_${Date.now()}_VIP`,
+      nombre: clientName.trim(),
+      telefono: clientPhone.trim(),
+      servicio: `${currentMaster.plataforma} (Regalo VIP)`,
+      categoria: 'streaming',
+      fechaInicio: todayStr,
+      fechaVencimiento: calculatedExpiryStr,
+      idIntegrante: integrantes[0]?.id || '',
+      idMaster: currentMaster.id,
+      perfil: assignedProfile || '1',
+      pin: assignedPin || '',
+      correoExterno: '',
+      claveExterna: '',
+      perfilExterno: '',
+      proveedorKey: '',
+      detallesLicencia: `Enganche VIP ${giftDays} días`
+    };
+
+    const msgToSend = previewVipMessage;
+
+    setClientes(prev => [newGiftClient, ...prev]);
+    showToast(`Regalo VIP (${giftDays} días) registrado en Google Sheets`);
+
+    // Rotar semilla anti-spam para el siguiente cliente
+    setHeaderSeed(Math.floor(Math.random() * CABECERAS_REGALO_VIP.length));
+    setFooterSeed(Math.floor(Math.random() * CIERRES_REGALO_VIP.length));
+
+    window.open(`https://wa.me/${codigoPais}${clientPhone.trim()}?text=${encodeURIComponent(msgToSend)}`, '_blank');
+    await syncToSheets('guardarCliente', newGiftClient);
+  };
+
+  const handleSaveVipMaster = async (e) => {
+    e.preventDefault();
+    const isEditing = !!newVipAccount.id;
+    const newId = isEditing ? newVipAccount.id : `MVIP_${Date.now()}`;
+    const masterObj = { ...newVipAccount, id: newId };
+
+    if (isEditing) {
+      setCuentasMaster(prev => prev.map(m => m.id === newId ? masterObj : m));
+    } else {
+      setCuentasMaster(prev => [masterObj, ...prev]);
+    }
+
+    setSelectedMasterId(newId);
+    setNewVipAccount({
+      id: null,
+      plataforma: 'HBO Max',
+      correo: '',
+      clave: '',
+      limitePerfiles: 5,
+      fechaRenovacion: addMonthsToDate(getToday().toISOString().split('T')[0], 1)
+    });
+    setIsCustomVipPlat(false);
+    showToast(isEditing ? 'Cuenta VIP actualizada en Google Sheets' : 'Cuenta HBO / VIP guardada en Bóveda');
+    await syncToSheets('guardarMaster', masterObj);
+  };
+
+  const handleDeleteVipMaster = async (id) => {
+    setCuentasMaster(prev => prev.filter(m => m.id !== id));
+    showToast('Cuenta VIP eliminada');
+    await syncToSheets('eliminarMaster', { id });
+  };
+
+  const handleSaveVipConfig = async () => {
+    const configObj = normalizePlantilla({
+      id: VIP_CONFIG_ID,
+      nombre: '__CONFIG_REGALOS_VIP_HBO__',
+      categoriaCatalogo: 'ConfigVIP',
+      precio: String(diasDefaultConfig || '15'),
+      beneficios: mensajeConversion,
+      reglas: reglasVip,
+      ofrecer: []
+    });
+    const exists = plantillas.some(p => p.id === VIP_CONFIG_ID);
+    if (exists) {
+      setPlantillas(prev => prev.map(p => p.id === VIP_CONFIG_ID ? configObj : p));
+    } else {
+      setPlantillas(prev => [...prev, configObj]);
+    }
+    setGiftDays(parseInt(diasDefaultConfig, 10) || 15);
+    showToast('Configuración de Regalos VIP guardada en Google Sheets');
+    await syncToSheets('guardarPlantilla', serializePlantillaForSheets(configObj));
+  };
+
+  const handleSendConversionWhatsApp = (client) => {
+    const cleanPlat = (client.servicio || 'HBO Max').replace(' (Regalo VIP)', '');
+    const msg = mensajeConversion
+      .replace(/{nombre}/gi, client.nombre || 'Cliente')
+      .replace(/{producto}/gi, cleanPlat)
+      .replace(/{negocio}/gi, parametros.nombreNegocio);
+    window.open(`https://wa.me/${codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const regalosActivosList = useMemo(() => {
+    return clientes.filter(c =>
+      String(c.servicio || '').includes('(Regalo VIP)') ||
+      String(c.idMaster || '').startsWith('MVIP_') ||
+      String(c.detallesLicencia || '').includes('Enganche VIP')
+    );
+  }, [clientes]);
+
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      {/* CABECERA DEL MÓDULO */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-black uppercase tracking-wider mb-2">
+            🕵️ Estrategia de Enganche Silencioso (Anti-Spam)
+          </div>
+          <h1 className="text-3xl font-bold text-slate-800 flex items-center">
+            <Gift className="w-8 h-8 mr-3 text-indigo-600" /> Regalos VIP (HBO Max y Streaming)
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Engancha a clientes exclusivos o que no ven tus estados regalándoles 10 o 15 días de HBO Max sin que parezca publicidad.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm gap-1">
+          <button
+            onClick={() => setSubTab('regalar')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${subTab === 'regalar' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🎁 1. Enviar Regalo VIP
+          </button>
+          <button
+            onClick={() => setSubTab('boveda')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${subTab === 'boveda' ? 'bg-purple-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🗄️ 2. Subir Cuentas HBO ({cuentasMaster.filter(m => String(m.id).startsWith('MVIP_')).length})
+          </button>
+          <button
+            onClick={() => setSubTab('config')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${subTab === 'config' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            ⚙️ 3. Configurar Reglas
+          </button>
+        </div>
+      </div>
+
+      {/* SUB-PESTAÑA 1: ENVIAR REGALO VIP (10 / 15 DÍAS) */}
+      {subTab === 'regalar' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 space-y-6">
+            {/* PASO 1: SELECCIONAR CLIENTE */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <Smartphone className="w-5 h-5 mr-2 text-indigo-600" /> 1. Elige al Cliente Exclusivo o a Enganchar
+                </h3>
+                <span className="text-xs font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-200">
+                  ⚡ {clientesUnicos.length} en memoria
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre del Cliente *</label>
+                  <input
+                    type="text"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-bold"
+                    placeholder="Escribe una letra (Ej. J para José)..."
+                    value={clientName}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+                    onChange={(e) => { setClientName(e.target.value); setShowSuggestions(true); }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Tab' || e.key === 'Enter') && showSuggestions && sugerencias.length > 0) {
+                        e.preventDefault();
+                        setClientName(sugerencias[0].nombre);
+                        setClientPhone(String(sugerencias[0].telefono));
+                        setShowSuggestions(false);
+                      }
+                    }}
+                  />
+                  {showSuggestions && sugerencias.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border-2 border-indigo-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+                      {sugerencias.map(s => (
+                        <div
+                          key={s.id}
+                          onMouseDown={() => {
+                            setClientName(s.nombre);
+                            setClientPhone(String(s.telefono));
+                            setShowSuggestions(false);
+                          }}
+                          className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-800">{s.nombre}</div>
+                            <div className="text-[10px] text-slate-400">Último servicio: {s.servicio}</div>
+                          </div>
+                          <span className="text-xs font-mono text-slate-500">+{s.telefono}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código de país) *</label>
+                  <input
+                    type="tel"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-mono font-bold"
+                    placeholder="999888777"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+
+              {/* Mini selector rápido desde la base unificada */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-500">O selecciónalo con 1 clic de tu historial:</span>
+                  <input
+                    type="text"
+                    placeholder="Filtrar lista rápida..."
+                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1 outline-none focus:border-indigo-500"
+                    value={searchClientTable}
+                    onChange={(e) => setSearchClientTable(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {clientesFiltradosTabla.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setClientName(c.nombre);
+                        setClientPhone(String(c.telefono));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                        clientPhone === String(c.telefono)
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300'
+                      }`}
+                    >
+                      {c.nombre} <span className="opacity-70 font-normal">({c.servicio})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* PASO 2: SELECCIONAR CUENTA HBO / VIP Y PERFIL */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <MonitorPlay className="w-5 h-5 mr-2 text-purple-600" /> 2. Cuenta HBO / Streaming a Regalar
+                </h3>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center text-xs font-bold text-slate-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mr-1.5 rounded"
+                      checked={showAllMasters}
+                      onChange={(e) => setShowAllMasters(e.target.checked)}
+                    />
+                    Mostrar también mis Cuentas Máster normales
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('boveda')}
+                    className="text-xs font-bold text-purple-600 hover:underline"
+                  >
+                    + Subir Nueva Cuenta HBO
+                  </button>
+                </div>
+              </div>
+
+              {vipMasters.length === 0 ? (
+                <div className="p-6 bg-purple-50 border-2 border-purple-200 border-dashed rounded-2xl text-center space-y-3">
+                  <p className="text-sm font-bold text-purple-900">
+                    Aún no has subido ninguna cuenta de HBO en tu Bóveda de Regalos VIP.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('boveda')}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-xl font-bold text-sm shadow"
+                  >
+                    Subir Mi Primera Cuenta HBO para Regalos
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <select
+                    className="w-full border-2 border-purple-200 rounded-xl p-3 font-bold bg-purple-50/40 text-slate-800 focus:border-purple-500 outline-none"
+                    value={currentMaster?.id || ''}
+                    onChange={(e) => {
+                      const mId = e.target.value;
+                      setSelectedMasterId(mId);
+                      setAssignedProfile(calcularSiguientePerfilLibre(mId));
+                    }}
+                  >
+                    {vipMasters.map(m => {
+                      const ocupados = clientes.filter(c => c.idMaster === m.id && getDaysRemaining(c.fechaVencimiento) >= 0).length;
+                      const limit = parseInt(m.limitePerfiles, 10) || 5;
+                      return (
+                        <option key={m.id} value={m.id}>
+                          🎬 {m.plataforma} — {m.correo} (Libres: {Math.max(0, limit - ocupados)} de {limit})
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">Nº de Perfil Asignado *</label>
+                      <input
+                        type="text"
+                        className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold bg-slate-50 focus:bg-white"
+                        value={assignedProfile}
+                        onChange={(e) => setAssignedProfile(e.target.value)}
+                        placeholder="Ej. 1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">PIN del Perfil (Opcional)</label>
+                      <input
+                        type="text"
+                        className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold bg-slate-50 focus:bg-white"
+                        value={assignedPin}
+                        onChange={(e) => setAssignedPin(e.target.value)}
+                        placeholder="Dejar vacío si no tiene PIN"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* PASO 3: DÍAS DE ENGANCHE (10 / 15 DÍAS) Y MODO SILENCIOSO */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <h3 className="font-bold text-slate-800 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-emerald-600" /> 3. Días de Regalo y Modo Sorpresa Silencioso
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { label: '⚡ 7 Días', days: 7 },
+                  { label: '🔥 10 Días', days: 10 },
+                  { label: '👑 15 Días', days: 15 },
+                  { label: '🌟 30 Días', days: 30 }
+                ].map(item => (
+                  <button
+                    key={item.days}
+                    type="button"
+                    onClick={() => setGiftDays(item.days)}
+                    className={`py-3 px-3 rounded-xl font-black text-xs border-2 transition-all ${
+                      giftDays === item.days
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600">O escribe días exactos:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    className="w-20 border-2 border-slate-300 rounded-xl p-1.5 text-center font-black text-sm bg-white"
+                    value={giftDays}
+                    onChange={(e) => setGiftDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  />
+                  <span className="text-xs font-bold text-slate-500">días</span>
+                </div>
+                <div className="text-xs font-bold text-indigo-900 bg-indigo-100 px-3 py-1.5 rounded-xl">
+                  🔔 Tu sistema te avisará el: <span className="font-black">{formatDateToLocal(calculatedExpiryStr)}</span>
+                </div>
+              </div>
+
+              {/* INTERRUPTOR: ELLOS NO LO VAN A SABER */}
+              <div
+                onClick={() => setHideExpiryInWa(!hideExpiryInWa)}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start justify-between gap-3 ${
+                  hideExpiryInWa
+                    ? 'bg-emerald-50/70 border-emerald-300'
+                    : 'bg-amber-50/70 border-amber-300'
+                }`}
+              >
+                <div>
+                  <div className="font-black text-sm text-slate-800 flex items-center">
+                    {hideExpiryInWa
+                      ? '🕵️ Modo Sorpresa Silencioso ACTIVO (Ellos NO sabrán que es por ' + giftDays + ' días)'
+                      : '📅 Fecha Visible en WhatsApp (El cliente verá la fecha de vencimiento)'}
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1">
+                    {hideExpiryInWa
+                      ? 'El mensaje de WhatsApp se enviará como un regalo VIP genuino sin mencionar los ' + giftDays + ' días, pero quedará agendado en tu base de datos para avisarte cuando venza.'
+                      : 'El mensaje incluirá la línea de fecha de vencimiento (' + formatDateToLocal(calculatedExpiryStr) + ').'}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hideExpiryInWa}
+                  onChange={() => {}}
+                  className="w-5 h-5 mt-1 accent-emerald-600 cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* VISTA PREVIA ANTI-SPAM Y BOTÓN DE ENVÍO */}
+          <div className="lg:col-span-5">
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex flex-col h-full justify-between space-y-5">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-indigo-400 block">
+                      30 Variaciones Anti-Spam Personales
+                    </span>
+                    <h3 className="text-lg font-bold">Vista Previa del Regalo VIP</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeaderSeed(prev => (prev + 1) % CABECERAS_REGALO_VIP.length);
+                      setFooterSeed(prev => (prev + 1) % CIERRES_REGALO_VIP.length);
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-xl text-xs font-bold flex items-center border border-slate-700"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Rotar Saludo ({headerSeed + 1}/30)
+                  </button>
+                </div>
+
+                <div className="bg-indigo-950/60 border border-indigo-800/60 rounded-2xl p-4 font-sans text-xs text-indigo-50 whitespace-pre-wrap max-h-[420px] overflow-y-auto leading-relaxed">
+                  {previewVipMessage}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveAndSendVipGift}
+                  disabled={syncStatus === 'sincronizando' || !currentMaster || !clientPhone.trim()}
+                  className="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-40 text-white font-black rounded-2xl shadow-lg flex items-center justify-center text-base transition-all"
+                >
+                  <Gift className="w-5 h-5 mr-2" /> Registrar {giftDays} Días y Enviar Regalo VIP
+                </button>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Descuenta el perfil automáticamente, agenda el vencimiento interno para el <strong>{formatDateToLocal(calculatedExpiryStr)}</strong> y abre WhatsApp con un saludo único.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-PESTAÑA 2: BÓVEDA DE CUENTAS HBO PARA REGALAR Y SEGUIMIENTO DE ENGANCHADOS */}
+      {subTab === 'boveda' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-purple-200">
+            <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center">
+              <Plus className="w-5 h-5 mr-2 text-purple-600" /> Subir Cuenta de HBO Max (u otra plataforma) para Regalos VIP
+            </h3>
+            <form onSubmit={handleSaveVipMaster} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 items-end">
+              <div className="xl:col-span-1">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Plataforma</label>
+                {!isCustomVipPlat ? (
+                  <select
+                    className="w-full border-2 border-purple-200 rounded-xl p-3 font-bold bg-white"
+                    value={newVipAccount.plataforma}
+                    onChange={(e) => {
+                      if (e.target.value === 'OTRA') {
+                        setIsCustomVipPlat(true);
+                        setNewVipAccount({ ...newVipAccount, plataforma: '' });
+                      } else {
+                        setNewVipAccount({ ...newVipAccount, plataforma: e.target.value });
+                      }
+                    }}
+                  >
+                    <option value="HBO Max">HBO Max</option>
+                    <option value="Netflix">Netflix</option>
+                    <option value="Disney+">Disney+</option>
+                    <option value="Amazon Prime">Amazon Prime</option>
+                    <option value="Crunchyroll">Crunchyroll</option>
+                    <option value="Paramount+">Paramount+</option>
+                    <option value="OTRA">➕ Otra plataforma...</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="Nombre plataforma..."
+                    className="w-full border-2 border-purple-200 rounded-xl p-3 font-bold"
+                    value={newVipAccount.plataforma}
+                    onChange={(e) => setNewVipAccount({ ...newVipAccount, plataforma: e.target.value })}
+                  />
+                )}
+              </div>
+              <div className="xl:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Correo de la Cuenta HBO *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="ejemplo@hbomax.com"
+                  className="w-full border-2 border-slate-200 rounded-xl p-3 font-medium"
+                  value={newVipAccount.correo}
+                  onChange={(e) => setNewVipAccount({ ...newVipAccount, correo: e.target.value })}
+                />
+              </div>
+              <div className="xl:col-span-1">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Contraseña *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Clave123"
+                  className="w-full border-2 border-slate-200 rounded-xl p-3 font-medium"
+                  value={newVipAccount.clave}
+                  onChange={(e) => setNewVipAccount({ ...newVipAccount, clave: e.target.value })}
+                />
+              </div>
+              <div className="xl:col-span-1 flex gap-2">
+                <div className="w-1/2">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Perfiles</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold"
+                    value={newVipAccount.limitePerfiles}
+                    onChange={(e) => setNewVipAccount({ ...newVipAccount, limitePerfiles: e.target.value })}
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Vence</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-xs"
+                    value={newVipAccount.fechaRenovacion}
+                    onChange={(e) => setNewVipAccount({ ...newVipAccount, fechaRenovacion: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="xl:col-span-1">
+                <button
+                  type="submit"
+                  disabled={syncStatus === 'sincronizando'}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl p-3 shadow-lg flex justify-center items-center disabled:opacity-50"
+                >
+                  <Plus className="w-5 h-5 mr-1.5" /> {newVipAccount.id ? 'Actualizar' : 'Subir Cuenta'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* TARJETAS DE CUENTAS VIP SUBIDAS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {cuentasMaster.filter(m => String(m.id).startsWith('MVIP_')).map(master => {
+              const asignados = clientes.filter(c => c.idMaster === master.id);
+              const limit = parseInt(master.limitePerfiles, 10) || 5;
+              const isFull = asignados.length >= limit;
+              return (
+                <div key={master.id} className="p-5 rounded-2xl bg-white border-2 border-purple-200 shadow-sm flex flex-col justify-between space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 rounded-full text-[11px] font-black uppercase">
+                        🎁 Bóveda Regalo VIP
+                      </span>
+                      <div className="font-black text-slate-800 text-lg mt-1">{master.plataforma}</div>
+                      <div className="font-mono text-xs text-slate-600 mt-0.5">👤 {master.correo}</div>
+                      <div className="font-mono text-xs text-slate-500">🔑 {master.clave}</div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={() => setNewVipAccount(master)}
+                        className="p-2 text-slate-400 hover:text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteVipMaster(master.id)}
+                        className="p-2 text-slate-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex justify-between text-xs font-bold text-slate-600 mb-1.5">
+                      <span>Perfiles de Regalo Ocupados</span>
+                      <span className={isFull ? 'text-red-600' : 'text-emerald-600'}>{asignados.length} / {limit}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div
+                        className={`h-full rounded-full ${isFull ? 'bg-red-500' : 'bg-purple-600'}`}
+                        style={{ width: `${Math.min(100, (asignados.length / limit) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMasterId(master.id);
+                      setAssignedProfile(calcularSiguientePerfilLibre(master.id));
+                      setSubTab('regalar');
+                    }}
+                    className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition-colors"
+                  >
+                    🎁 Usar esta cuenta para regalar ahora
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* TABLA DE CLIENTES CON REGALO VIP ACTIVO (SEGUIMIENTO 10 / 15 DÍAS) */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-slate-800">Clientes con Regalos VIP en Curso (10 / 15 Días)</h3>
+                <p className="text-xs text-slate-500">Cuando estén por cumplir sus días, envíales el mensaje de conversión con 1 clic para cerrar la venta.</p>
+              </div>
+              <span className="px-3 py-1 bg-indigo-100 text-indigo-800 font-black text-xs rounded-full">
+                {regalosActivosList.length} Regalos Registrados
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase">
+                  <tr>
+                    <th className="px-6 py-3.5">Cliente Enganchado</th>
+                    <th className="px-6 py-3.5">Cuenta / Perfil</th>
+                    <th className="px-6 py-3.5">Fin de los 10/15 Días</th>
+                    <th className="px-6 py-3.5 text-right">Convertir en Venta</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {regalosActivosList.map(c => {
+                    const daysLeft = getDaysRemaining(c.fechaVencimiento);
+                    const masterObj = cuentasMaster.find(m => m.id === c.idMaster);
+                    return (
+                      <tr key={c.id} className="hover:bg-slate-50">
+                        <td className="px-6 py-3.5">
+                          <div className="font-bold text-slate-800">{c.nombre}</div>
+                          <div className="text-xs text-slate-500">+{c.telefono}</div>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="font-bold text-indigo-700">{c.servicio} (P{c.perfil || '1'})</div>
+                          <div className="text-xs text-slate-500 font-mono">{masterObj?.correo || 'Cuenta VIP'}</div>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="font-bold text-slate-700">{formatDateToLocal(c.fechaVencimiento)}</div>
+                          <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${daysLeft < 0 ? 'bg-red-100 text-red-800' : daysLeft <= 3 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                            {daysLeft < 0 ? `Venció hace ${Math.abs(daysLeft)}d` : `Quedan ${daysLeft} días`}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleSendConversionWhatsApp(c)}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs inline-flex items-center shadow-sm"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 mr-1.5" /> Ofrecer Quedarse con el Perfil
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {regalosActivosList.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-8 text-center text-slate-400 font-medium">
+                        Aún no has enviado ningún regalo VIP de 10 o 15 días.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-PESTAÑA 3: CONFIGURACIÓN DE REGLAS Y CONVERSIÓN */}
+      {subTab === 'config' && (
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 max-w-3xl space-y-5">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center">
+              <Settings className="w-5 h-5 mr-2 text-slate-600" /> Configuración del Módulo de Regalos VIP (HBO)
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Personaliza las recomendaciones que se adjuntan al regalar la cuenta y el mensaje para convertir al cliente en comprador cuando pasen los 10 o 15 días.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              Días de Enganche por Defecto
+            </label>
+            <input
+              type="number"
+              className="w-32 border-2 border-slate-200 rounded-xl p-3 font-black bg-slate-50"
+              value={diasDefaultConfig}
+              onChange={(e) => setDiasDefaultConfig(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              🛡️ Recomendaciones / Reglas que van dentro del Mensaje de Regalo VIP
+            </label>
+            <textarea
+              rows="4"
+              className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 text-sm"
+              value={reglasVip}
+              onChange={(e) => setReglasVip(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              🚀 Mensaje de Conversión (Para enviar cuando se cumplan los 10 o 15 días)
+            </label>
+            <textarea
+              rows="4"
+              className="w-full border-2 border-emerald-200 rounded-xl p-3 bg-emerald-50/30 text-sm"
+              value={mensajeConversion}
+              onChange={(e) => setMensajeConversion(e.target.value)}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Puedes usar las etiquetas <strong>{'{nombre}'}</strong>, <strong>{'{producto}'}</strong> y <strong>{'{negocio}'}</strong>.
+            </p>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex justify-end">
+            <button
+              type="button"
+              onClick={handleSaveVipConfig}
+              disabled={syncStatus === 'sincronizando'}
+              className="px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow flex items-center disabled:opacity-50"
+            >
+              <Server className="w-4 h-4 mr-2" /> Guardar Configuración VIP en Google Sheets
+            </button>
           </div>
         </div>
       )}
@@ -1824,6 +2826,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto h-full">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} />}
               {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
+              {activeTab === 'regalos_vip' && <RegalosVipHboView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} plantillas={plantillas} setPlantillas={setPlantillas} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'software' && <SoftwareList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
