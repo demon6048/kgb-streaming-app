@@ -65,6 +65,155 @@ const parseLicenseText = (text) => {
 };
 
 // ==========================================
+// 2.1 MOTOR ANTI-SPAM (35 CABECERAS + 10 CIERRES) Y SERIALIZADOR DE CATÁLOGO
+// ==========================================
+const META_PREFIX = '__KGB_META__:';
+
+const normalizePlantilla = (p) => {
+  let rawOfrecer = p.ofrecer;
+  if (typeof rawOfrecer === 'string') {
+    try { rawOfrecer = JSON.parse(rawOfrecer); } catch (e) { rawOfrecer = [rawOfrecer]; }
+  }
+  if (!Array.isArray(rawOfrecer)) rawOfrecer = [];
+
+  let meta = {
+    precio: p.precio || '',
+    reglas: p.reglas || '',
+    categoriaCatalogo: p.categoriaCatalogo || 'Streaming'
+  };
+  const cleanOfrecer = [];
+
+  rawOfrecer.forEach(item => {
+    if (typeof item === 'string' && item.startsWith(META_PREFIX)) {
+      try {
+        const parsed = JSON.parse(item.slice(META_PREFIX.length));
+        meta = { ...meta, ...parsed };
+      } catch (e) {}
+    } else if (typeof item === 'string' && item.trim() !== '') {
+      cleanOfrecer.push(item);
+    }
+  });
+
+  return {
+    ...p,
+    precio: meta.precio,
+    reglas: meta.reglas,
+    categoriaCatalogo: meta.categoriaCatalogo,
+    ofrecer: cleanOfrecer
+  };
+};
+
+const serializePlantillaForSheets = (p) => {
+  const cleanOfrecer = (Array.isArray(p.ofrecer) ? p.ofrecer : []).filter(
+    item => typeof item === 'string' && !item.startsWith(META_PREFIX) && item.trim() !== ''
+  );
+  const metaString = META_PREFIX + JSON.stringify({
+    precio: p.precio || '',
+    reglas: p.reglas || '',
+    categoriaCatalogo: p.categoriaCatalogo || 'Streaming'
+  });
+  return {
+    id: p.id,
+    nombre: p.nombre,
+    beneficios: p.beneficios || '',
+    ofrecer: [metaString, ...cleanOfrecer]
+  };
+};
+
+const CABECERAS_ANTISPAM = [
+  "¡Hola *{nombre}*! 👋 Espero que estés teniendo un excelente día. Te escribimos de *{negocio}* para presentarte *{producto}* y todo lo que incluye:",
+  "¡Qué tal, *{nombre}*! 🌟 Paso por aquí desde *{negocio}* porque tenemos disponible *{producto}* y queríamos mostrarte sus beneficios:",
+  "¡Hola *{nombre}*! 😊 Un gusto saludarte. Desde *{negocio}* te compartimos la información completa de *{producto}* que tenemos disponible para ti:",
+  "¡Buen día, *{nombre}*! 🚀 Te contactamos del equipo de *{negocio}* para ofrecerte acceso a *{producto}*. Mira todo lo que trae:",
+  "¡Hola, qué tal *{nombre}*! 👋 En *{negocio}* acabamos de habilitar cupos para *{producto}* y pensamos que te podría interesar:",
+  "¡Saludos, *{nombre}*! ✨ Te escribimos de *{negocio}* para comentarte que ya contamos con *{producto}* totalmente garantizado. Te detallo lo que incluye:",
+  "¡Hola *{nombre}*! 💙 Espero que todo marche súper bien. Te comparto desde *{negocio}* los detalles completos de *{producto}*:",
+  "¡Qué tal *{nombre}*! 🙌 Te saluda el equipo de *{negocio}*. Queríamos ofrecerte *{producto}* con soporte completo. Aquí tienes la información:",
+  "¡Hola *{nombre}*! 🌟 Si estabas buscando *{producto}*, en *{negocio}* lo tenemos listo para activación inmediata. Te explico qué incluye:",
+  "¡Hola, *{nombre}*! 👋 Te escribimos con una excelente novedad desde *{negocio}*. Ya tenemos disponible *{producto}* y esto es todo lo que obtienes:",
+  "¡Estimado/a *{nombre}*! 😊 Qué gusto saludarte desde *{negocio}*. Te enviamos la ficha informativa de *{producto}* para que conozcas sus ventajas:",
+  "¡Hola *{nombre}*! 🚀 Queremos ayudarte a disfrutar de lo mejor en *{negocio}*, por eso hoy te ofrecemos *{producto}*. Revisa sus características:",
+  "¡Qué tal, *{nombre}*! 👋 Espero que tu semana vaya genial. Te escribo de *{negocio}* para presentarte nuestra suscripción de *{producto}*:",
+  "¡Hola *{nombre}*! ✨ Desde *{negocio}* hemos preparado esta información especial sobre *{producto}* para que veas todo lo que puedes aprovechar:",
+  "¡Un saludo cordial, *{nombre}*! 💙 Te contactamos de *{negocio}* porque tenemos activo *{producto}* y queríamos explicarte paso a paso qué trae:",
+  "¡Hola *{nombre}*! 🎉 En *{negocio}* seguimos ampliando nuestro catálogo y hoy queremos ofrecerte *{producto}*. Mira todos sus beneficios:",
+  "¡Qué tal *{nombre}*! 😊 Te escribimos brevemente de *{negocio}* para darte a conocer *{producto}*, una de nuestras plataformas más completas:",
+  "¡Hola, *{nombre}*! ⚡ Si quieres sacarle el máximo provecho a tu entretenimiento o trabajo, en *{negocio}* te ofrecemos *{producto}*:",
+  "¡Buenas, *{nombre}*! 👋 Por aquí el equipo de *{negocio}*. Te dejamos los detalles de *{producto}* para que lo evalúes con total confianza:",
+  "¡Hola *{nombre}*! 🌟 Gracias por estar en contacto con *{negocio}*. Hoy queremos presentarte *{producto}* junto con todas sus funciones:",
+  "¡Qué gusto saludarte, *{nombre}*! 🙌 Desde *{negocio}* te acercamos esta propuesta de *{producto}* con garantía total. Mira lo que incluye:",
+  "¡Hola *{nombre}*! 💼 En *{negocio}* nos encanta brindarte las mejores herramientas y plataformas, por eso te ofrecemos *{producto}*:",
+  "¡Hola, qué tal *{nombre}*! ✨ Te compartimos desde *{negocio}* la guía completa y beneficios de *{producto}*, disponible desde hoy:",
+  "¡Saludos *{nombre}*! 👋 Espero que te encuentres muy bien. Te escribo de *{negocio}* para mostrarte por qué *{producto}* es una excelente elección:",
+  "¡Hola *{nombre}*! 🔥 En *{negocio}* tenemos listo *{producto}* con entrega inmediata y soporte. Aquí te explico detalladamente qué contiene:",
+  "¡Qué tal, *{nombre}*! 💙 Paso a dejarte la información oficial de *{producto}* de parte de *{negocio}* para que conozcas todo su potencial:",
+  "¡Hola *{nombre}*! 😊 Sabemos que buscas calidad y seguridad, por eso desde *{negocio}* te ofrecemos *{producto}* con estas características:",
+  "¡Buen día *{nombre}*! 🌟 Te saluda *{negocio}*. Queremos poner a tu disposición *{producto}* y explicarte claramente cómo funciona:",
+  "¡Hola, *{nombre}*! 🚀 ¿Ya conocías todo lo que incluye *{producto}*? Desde *{negocio}* te lo resumimos para que puedas aprovecharlo:",
+  "¡Qué tal *{nombre}*! 👋 Te escribimos con mucho gusto desde *{negocio}* para invitarte a probar *{producto}*. Mira todo lo que trae:",
+  "¡Hola *{nombre}*! ✨ Pensando en darte siempre las mejores opciones, en *{negocio}* te presentamos *{producto}* con acceso garantizado:",
+  "¡Saludos cordiales, *{nombre}*! 🙌 Desde la central de *{negocio}* te enviamos el detalle completo de *{producto}* disponible en nuestro catálogo:",
+  "¡Hola *{nombre}*! 💡 Si te interesa contar con *{producto}*, en *{negocio}* te explicamos de forma clara y transparente todo lo que incluye:",
+  "¡Qué tal, *{nombre}*! 😊 Espero que estés pasando un gran día. Te comparto de parte de *{negocio}* los beneficios y detalles de *{producto}*:",
+  "¡Hola *{nombre}*! 🎯 En *{negocio}* tenemos disponible *{producto}* con garantía y soporte permanente. Te detallo a continuación lo que ofrece:"
+];
+
+const CIERRES_ANTISPAM = [
+  "¿Te gustaría que te activemos tu acceso hoy mismo? ¡Quedamos atentos a tu respuesta! 😊🚀",
+  "Si tienes alguna consulta o deseas adquirirlo, escríbenos por aquí y te atendemos al instante. 💙",
+  "¿Qué te parece? Avísanos si deseas aprovecharlo hoy y lo dejamos listo en minutos. 🙌✨",
+  "Cualquier duda que tengas sobre el funcionamiento, aquí estamos para ayudarte con total confianza. 😊",
+  "¡Anímate a probarlo! Confírmanos por este medio si deseas que procedamos con tu activación. 🔥",
+  "Trabajamos con garantía y soporte durante todo tu periodo. ¿Te reservamos un cupo? 💼💙",
+  "Si te interesa, respóndenos este mensaje y te enviamos los métodos de pago al instante. ⚡",
+  "Estamos conectados para activar tu cuenta de inmediato apenas nos confirmes. ¡Un abrazo! 🌟",
+  "¿Deseas que te separemos una licencia o perfil con esta oferta? ¡Escríbenos! 👋😊",
+  "Gracias por tu tiempo y por confiar siempre en nosotros. ¡Avísanos si te animas a activarlo hoy! 🎉"
+];
+
+const buildCatalogOfferMessage = ({ clientName, productObj, discountPercent = 0, headerIdx = null, footerIdx = null }) => {
+  if (!productObj) return '';
+  const nombreFinal = clientName || 'Cliente';
+  const poolCabeceras = [
+    ...CABECERAS_ANTISPAM,
+    ...(Array.isArray(productObj.ofrecer) ? productObj.ofrecer : [])
+  ];
+  const chosenHeaderIdx = headerIdx !== null ? (headerIdx % poolCabeceras.length) : Math.floor(Math.random() * poolCabeceras.length);
+  const chosenFooterIdx = footerIdx !== null ? (footerIdx % CIERRES_ANTISPAM.length) : Math.floor(Math.random() * CIERRES_ANTISPAM.length);
+
+  let cabecera = poolCabeceras[chosenHeaderIdx] || CABECERAS_ANTISPAM[0];
+  cabecera = cabecera
+    .replace(/{nombre}/gi, nombreFinal)
+    .replace(/{producto}/gi, productObj.nombre || 'nuestro servicio')
+    .replace(/{negocio}/gi, parametros.nombreNegocio);
+
+  let msg = `${cabecera}\n\n`;
+
+  if (productObj.beneficios && productObj.beneficios.trim() !== '') {
+    msg += `📋 *¿QUÉ INCLUYE ${(productObj.nombre || '').toUpperCase()}?*\n${productObj.beneficios.trim()}\n\n`;
+  }
+
+  const precioNum = parseFloat(productObj.precio);
+  if (!isNaN(precioNum) && precioNum > 0) {
+    if (discountPercent > 0) {
+      const precioFinal = (precioNum * (1 - discountPercent / 100)).toFixed(2).replace(/\.00$/, '');
+      msg += `🔥 *PROMOCIÓN ESPECIAL PARA TI (-${discountPercent}% DSCTO):*\n`;
+      msg += `❌ Precio normal: ~S/ ${precioNum.toFixed(2).replace(/\.00$/, '')}~\n`;
+      msg += `✅ *Precio con descuento hoy:* *S/ ${precioFinal}*\n\n`;
+    } else {
+      msg += `💰 *PRECIO:* *S/ ${precioNum.toFixed(2).replace(/\.00$/, '')}*\n\n`;
+    }
+  }
+
+  if (productObj.reglas && productObj.reglas.trim() !== '') {
+    msg += `🛡️ *REGLAS DE USO Y GARANTÍA:*\n${productObj.reglas.trim()}\n\n`;
+  }
+
+  msg += CIERRES_ANTISPAM[chosenFooterIdx];
+  return msg;
+};
+
+// ==========================================
 // 3. COMPONENTES DE INTERFAZ (UI)
 // ==========================================
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, setIsAuthenticated }) => (
@@ -82,6 +231,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
       <div className="flex-1 overflow-y-auto py-6 flex flex-col space-y-1 px-3">
         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3 mt-4">Principal</div>
         <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600/10 text-blue-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><LayoutDashboard className="w-5 h-5 mr-3" /> Panel de Control</button>
+        <button onClick={() => { setActiveTab('catalogo'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'catalogo' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Star className="w-5 h-5 mr-3" /> Catálogo y Ofertas</button>
         <button onClick={() => { setActiveTab('campanas'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'campanas' ? 'bg-pink-600/10 text-pink-400 font-bold' : 'hover:bg-slate-800/50 hover:text-slate-100'}`}><Gift className="w-5 h-5 mr-3" /> Campañas y Regalos</button>
 
         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3 mt-6">Servicios y Licencias</div>
@@ -333,15 +483,18 @@ const StockAntivirusList = ({ stockAV, setStockAV, syncToSheets, showToast, setC
     e.preventDefault();
     const lines = keysRaw.split('\n').map(l => l.trim()).filter(l => l);
     if(lines.length === 0) return;
-    const newKeys = lines.map(line => ({
-      id: `K_${Date.now()}_${Math.random().toString(36).substr(2,6)}`,
+    const newKeys = lines.map((line, idx) => ({
+      id: `K_${Date.now()}_${idx}_${Math.random().toString(36).substr(2,5)}`,
       producto: newProduct, llave: line, estado: 'Disponible',
       fechaAgregado: getToday().toISOString().split('T')[0], idCliente: ''
     }));
     setStockAV(prev => [...newKeys, ...prev]);
-    showToast(`${newKeys.length} Licencias Agregadas a Inventario`);
+    showToast(`Guardando ${newKeys.length} licencia(s) en Google Sheets...`);
     setKeysRaw('');
-    await syncToSheets('guardarMultiplesLlaves', newKeys);
+    for (const keyObj of newKeys) {
+      await syncToSheets('guardarLlave', keyObj);
+    }
+    showToast(`${newKeys.length} Licencia(s) sincronizadas en Google Sheets`);
   };
 
   const handleDeleteKey = async (id) => {
@@ -489,16 +642,25 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
   const [formData, setFormData] = useState(null);
 
   const handleAdd = () => {
-    const newTemplate = { id: `PL_${Date.now()}`, nombre: 'Nuevo Software', beneficios: '🚀 *BENEFICIOS INCLUIDOS:*\n✅ Licencia oficial completa', ofrecer: ['¡Hola {nombre}! Te escribimos para ofrecerte...'] };
+    const newTemplate = {
+      id: `PL_${Date.now()}`,
+      nombre: 'Nueva Plataforma / Software',
+      categoriaCatalogo: 'Streaming',
+      precio: '15',
+      beneficios: '✅ Acceso completo 100% garantizado\n✅ Soporte técnico durante toda tu suscripción',
+      reglas: '⚠️ Uso exclusivo en 1 dispositivo autorizado\n⚠️ No modificar datos de la cuenta para conservar la garantía',
+      ofrecer: []
+    };
     setEditingId(newTemplate.id); setFormData(newTemplate);
   };
 
   const handleSave = async () => {
-    const isNew = !plantillas.some(p => p.id === formData.id);
-    if (isNew) setPlantillas(prev => [...prev, formData]);
-    else setPlantillas(prev => prev.map(p => p.id === formData.id ? formData : p));
-    setEditingId(null); showToast('Enviando a Google Sheets...');
-    await syncToSheets('guardarPlantilla', formData);
+    const normalized = normalizePlantilla(formData);
+    const isNew = !plantillas.some(p => p.id === normalized.id);
+    if (isNew) setPlantillas(prev => [...prev, normalized]);
+    else setPlantillas(prev => prev.map(p => p.id === normalized.id ? normalized : p));
+    setEditingId(null); showToast('Guardando en Google Sheets...');
+    await syncToSheets('guardarPlantilla', serializePlantillaForSheets(normalized));
   };
 
   const handleDelete = async (id) => {
@@ -509,14 +671,20 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div><h1 className="text-3xl font-bold text-slate-800 flex items-center"><Settings className="w-8 h-8 mr-3 text-slate-600"/> Plantillas y Productos</h1><p className="text-slate-500 mt-1">Agrega nuevos programas de software y personaliza sus mensajes automáticos.</p></div>
-      <div className="flex justify-end"><button onClick={handleAdd} disabled={syncStatus === 'sincronizando'} className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl flex items-center font-bold shadow-md disabled:opacity-50"><Plus className="w-5 h-5 mr-2" /> Nuevo Producto</button></div>
+      <div><h1 className="text-3xl font-bold text-slate-800 flex items-center"><Settings className="w-8 h-8 mr-3 text-slate-600"/> Plantillas y Productos del Catálogo</h1><p className="text-slate-500 mt-1">Configura tus plataformas (Netflix, HBO, AutoCAD, Antivirus), precios en Soles, beneficios y reglas de uso.</p></div>
+      <div className="flex justify-end"><button onClick={handleAdd} disabled={syncStatus === 'sincronizando'} className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl flex items-center font-bold shadow-md disabled:opacity-50"><Plus className="w-5 h-5 mr-2" /> Nuevo Producto / Plataforma</button></div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-3">
           {plantillas.map(p => (
-            <div key={p.id} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${editingId === p.id ? 'border-slate-800 bg-slate-50 shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`} onClick={() => { setEditingId(p.id); setFormData(p); }}>
-              <div className="font-bold text-slate-800">{p.nombre}</div>
-              <div className="text-xs text-slate-500 mt-1">{p.ofrecer.length} variantes de prospección</div>
+            <div key={p.id} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${editingId === p.id ? 'border-slate-800 bg-slate-50 shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`} onClick={() => { setEditingId(p.id); setFormData(normalizePlantilla(p)); }}>
+              <div className="flex justify-between items-start">
+                <div className="font-bold text-slate-800">{p.nombre}</div>
+                {p.precio && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-black">S/ {p.precio}</span>}
+              </div>
+              <div className="text-xs text-slate-500 mt-1 flex items-center justify-between">
+                <span>{p.categoriaCatalogo || 'General'}</span>
+                <span className="text-amber-600 font-bold">35+ cabeceras anti-spam activas</span>
+              </div>
             </div>
           ))}
           {plantillas.length === 0 && <p className="text-sm text-slate-500">Crea tu primer producto para empezar a sincronizar.</p>}
@@ -524,36 +692,364 @@ const Configuracion = ({ plantillas, setPlantillas, showToast, syncToSheets, syn
 
         {editingId && formData && (
           <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5 animate-fadeIn">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Nombre del Producto *</label>
-              <input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:border-slate-500 font-bold" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej. Canva Pro Equipos" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">Nombre de Plataforma *</label>
+                <input className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:border-slate-500 font-bold" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej. AutoCAD (32 Programas)" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Categoría</label>
+                <select className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:border-slate-500 font-bold" value={formData.categoriaCatalogo || 'Streaming'} onChange={e => setFormData({...formData, categoriaCatalogo: e.target.value})}>
+                  <option value="Streaming">📺 Streaming (Netflix, HBO, etc.)</option>
+                  <option value="Software">💼 Software Profesional (AutoCAD, etc.)</option>
+                  <option value="Antivirus">🛡️ Antivirus y Seguridad</option>
+                  <option value="Otros">⭐ Otros Servicios</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Precio Base (Soles S/)</label>
+                <input type="number" step="0.5" className="w-full border-2 border-emerald-200 rounded-xl p-3 bg-emerald-50/40 focus:border-emerald-500 font-black text-emerald-900" value={formData.precio || ''} onChange={e => setFormData({...formData, precio: e.target.value})} placeholder="Ej. 16" />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Beneficios (Se envía al Entregar Credenciales)</label>
-              <textarea rows="4" className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:border-slate-500 text-sm" value={formData.beneficios} onChange={e => setFormData({...formData, beneficios: e.target.value})} placeholder="Lista de beneficios..."></textarea>
+              <label className="block text-sm font-bold text-slate-700 mb-1">📋 Explicación del Producto / Qué incluye (Pega aquí todo el detalle o los 32 programas)</label>
+              <textarea rows="6" className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:border-slate-500 text-sm" value={formData.beneficios} onChange={e => setFormData({...formData, beneficios: e.target.value})} placeholder="Explica aquí qué programas o beneficios incluye la plataforma..."></textarea>
             </div>
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-bold text-slate-700">Mensajes de Prospección (Al Ofrecer)</label>
-                <button onClick={() => setFormData({...formData, ofrecer: [...formData.ofrecer, '¡Hola {nombre}! Te ofrecemos...']})} className="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg hover:bg-slate-200">+ Añadir Variante</button>
-              </div>
-              <p className="text-xs text-slate-500 mb-3">Usa <code className="bg-slate-100 px-1 rounded font-bold text-blue-600">{'{nombre}'}</code> para que el sistema ponga el nombre del cliente automáticamente.</p>
-              <div className="space-y-3">
-                {formData.ofrecer.map((msg, index) => (
-                  <div key={index} className="relative">
-                    <textarea rows="3" className="w-full border-2 rounded-xl p-3 bg-slate-50 focus:border-slate-500 text-sm pr-10" value={msg} onChange={e => { const newOfrecer = [...formData.ofrecer]; newOfrecer[index] = e.target.value; setFormData({...formData, ofrecer: newOfrecer}); }} />
-                    {formData.ofrecer.length > 1 && (<button onClick={() => { const newOfrecer = formData.ofrecer.filter((_, i) => i !== index); setFormData({...formData, ofrecer: newOfrecer}); }} className="absolute top-3 right-3 p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200"><Trash2 className="w-4 h-4"/></button>)}
-                  </div>
-                ))}
-              </div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">🛡️ Reglas de Uso y Garantía (Para que el cliente compre con seguridad)</label>
+              <textarea rows="4" className="w-full border-2 border-amber-200 rounded-xl p-3 bg-amber-50/30 focus:border-amber-500 text-sm" value={formData.reglas || ''} onChange={e => setFormData({...formData, reglas: e.target.value})} placeholder="Ej. 1. Uso en 1 pantalla a la vez. 2. No cambiar clave ni crear perfiles extra. 3. Garantía y soporte todo el mes..."></textarea>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs text-blue-800 font-medium">
+              ✨ <strong>Motor Anti-Spam Autónomo Activo:</strong> El sistema ya genera automáticamente <strong>35 cabeceras distintas y 10 cierres aleatorios</strong> con el nombre del cliente para que WhatsApp nunca te detecte como spam. Solo necesitas pegar arriba la explicación, el precio y las reglas.
             </div>
             <div className="flex justify-between pt-4 border-t border-slate-100">
               <button disabled={syncStatus === 'sincronizando'} onClick={() => handleDelete(formData.id)} className="px-4 py-2.5 text-red-600 font-bold hover:bg-red-50 rounded-xl flex items-center disabled:opacity-50"><Trash2 className="w-4 h-4 mr-2"/> Eliminar Producto</button>
-              <button disabled={syncStatus === 'sincronizando'} onClick={handleSave} className="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 flex items-center disabled:opacity-50"><Server className="w-4 h-4 mr-2"/> Guardar Cambios</button>
+              <button disabled={syncStatus === 'sincronizando'} onClick={handleSave} className="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 flex items-center disabled:opacity-50"><Server className="w-4 h-4 mr-2"/> Guardar en Google Sheets</button>
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 4.1 NUEVO MÓDULO: CATÁLOGO, OFERTAS Y DESCUENTOS ANTI-SPAM
+// ==========================================
+const CatalogoOfertasView = ({ plantillas, setPlantillas, clientes, codigoPais, showToast, syncToSheets, syncStatus }) => {
+  const [selectedProductId, setSelectedProductId] = useState(plantillas[0]?.id || '');
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 35));
+  const [footerSeed, setFooterSeed] = useState(() => Math.floor(Math.random() * 10));
+  const [subTab, setSubTab] = useState('cotizador'); // 'cotizador' | 'editor'
+
+  useEffect(() => {
+    if (!selectedProductId && plantillas.length > 0) {
+      setSelectedProductId(plantillas[0].id);
+    }
+  }, [plantillas, selectedProductId]);
+
+  const clientesUnicos = useMemo(() => {
+    const map = new Map();
+    clientes.forEach(c => {
+      if (c.telefono && c.nombre && !map.has(String(c.telefono))) {
+        map.set(String(c.telefono), c);
+      }
+    });
+    return Array.from(map.values());
+  }, [clientes]);
+
+  const sugerencias = useMemo(() => {
+    if (!clientName.trim()) return clientesUnicos.slice(0, 15);
+    const term = clientName.toLowerCase();
+    return clientesUnicos.filter(c =>
+      String(c.nombre).toLowerCase().includes(term) ||
+      String(c.telefono).includes(term)
+    ).slice(0, 15);
+  }, [clientesUnicos, clientName]);
+
+  const currentProduct = plantillas.find(p => p.id === selectedProductId) || plantillas[0] || null;
+
+  const previewMsg = useMemo(() => {
+    if (!currentProduct) return 'Primero agrega un producto o plataforma en la pestaña "Administrar Catálogo".';
+    return buildCatalogOfferMessage({
+      clientName: clientName.trim() || 'Cliente',
+      productObj: currentProduct,
+      discountPercent,
+      headerIdx: randomSeed,
+      footerIdx: footerSeed
+    });
+  }, [currentProduct, clientName, discountPercent, randomSeed, footerSeed]);
+
+  const handleSendWhatsAppOffer = () => {
+    if (!currentProduct) {
+      showToast('Selecciona una plataforma del catálogo', 'error');
+      return;
+    }
+    if (!clientPhone.trim()) {
+      showToast('Ingresa o selecciona el WhatsApp del cliente', 'error');
+      return;
+    }
+    const nextHeader = Math.floor(Math.random() * 35);
+    const nextFooter = Math.floor(Math.random() * 10);
+    const msgToSend = buildCatalogOfferMessage({
+      clientName: clientName.trim() || 'Cliente',
+      productObj: currentProduct,
+      discountPercent,
+      headerIdx: randomSeed,
+      footerIdx: footerSeed
+    });
+    setRandomSeed(nextHeader);
+    setFooterSeed(nextFooter);
+    window.open(`https://wa.me/${codigoPais}${clientPhone.trim()}?text=${encodeURIComponent(msgToSend)}`, '_blank');
+  };
+
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 flex items-center">
+            <Star className="w-8 h-8 mr-3 text-amber-500" /> Catálogo, Ofertas y Descuentos
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Ofrece todas tus plataformas (Netflix, HBO, AutoCAD 32 programas, Antivirus) con explicación detallada, reglas, descuentos y 35 cabeceras anti-spam.
+          </p>
+        </div>
+        <div className="flex bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+          <button
+            onClick={() => setSubTab('cotizador')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${subTab === 'cotizador' ? 'bg-amber-500 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🚀 Enviar Oferta / Descuento
+          </button>
+          <button
+            onClick={() => setSubTab('editor')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${subTab === 'editor' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            ⚙️ Administrar Mi Catálogo ({plantillas.length})
+          </button>
+        </div>
+      </div>
+
+      {subTab === 'editor' ? (
+        <Configuracion
+          plantillas={plantillas}
+          setPlantillas={setPlantillas}
+          showToast={showToast}
+          syncToSheets={syncToSheets}
+          syncStatus={syncStatus}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 space-y-6">
+            {/* PASO 1: CLIENTE CON AUTOCOMPLETADO */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <Smartphone className="w-5 h-5 mr-2 text-amber-500" /> 1. Selecciona o Escribe al Cliente
+                </h3>
+                <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200">
+                  ⚡ {clientesUnicos.length} clientes en memoria
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre del Cliente *</label>
+                  <input
+                    type="text"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none font-bold"
+                    placeholder="Escribe una letra (Ej. J para José)..."
+                    value={clientName}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+                    onChange={(e) => { setClientName(e.target.value); setShowSuggestions(true); }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Tab' || e.key === 'Enter') && showSuggestions && sugerencias.length > 0) {
+                        e.preventDefault();
+                        setClientName(sugerencias[0].nombre);
+                        setClientPhone(String(sugerencias[0].telefono));
+                        setShowSuggestions(false);
+                      }
+                    }}
+                  />
+                  {showSuggestions && sugerencias.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border-2 border-amber-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+                      {sugerencias.map(s => (
+                        <div
+                          key={s.id}
+                          onMouseDown={() => {
+                            setClientName(s.nombre);
+                            setClientPhone(String(s.telefono));
+                            setShowSuggestions(false);
+                          }}
+                          className="p-3 hover:bg-amber-50 cursor-pointer border-b border-slate-100 flex justify-between items-center"
+                        >
+                          <span className="font-bold text-slate-800">{s.nombre}</span>
+                          <span className="text-xs font-mono text-slate-500">+{s.telefono}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código de país) *</label>
+                  <input
+                    type="tel"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none font-mono font-bold"
+                    placeholder="999888777"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* PASO 2: PLATAFORMA DEL CATÁLOGO */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <MonitorPlay className="w-5 h-5 mr-2 text-blue-600" /> 2. Elige la Plataforma o Programa a Ofrecer
+                </h3>
+                <button
+                  onClick={() => setSubTab('editor')}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  + Agregar / Editar Plataformas
+                </button>
+              </div>
+
+              {plantillas.length === 0 ? (
+                <div className="p-6 bg-amber-50 border-2 border-amber-200 border-dashed rounded-2xl text-center space-y-3">
+                  <p className="text-sm font-bold text-amber-900">Aún no has cargado plataformas en tu catálogo.</p>
+                  <button
+                    onClick={() => setSubTab('editor')}
+                    className="px-4 py-2 bg-amber-500 text-white rounded-xl font-bold text-sm shadow"
+                  >
+                    Ir a Cargar Netflix, HBO, AutoCAD...
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
+                  {plantillas.map(item => {
+                    const isSelected = item.id === (currentProduct?.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedProductId(item.id);
+                          setRandomSeed(Math.floor(Math.random() * 35));
+                          setFooterSeed(Math.floor(Math.random() * 10));
+                        }}
+                        className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex justify-between items-center ${
+                          isSelected ? 'border-amber-500 bg-amber-50/60 shadow-sm' : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-bold text-slate-800 text-sm">{item.nombre}</div>
+                          <div className="text-[11px] text-slate-500 font-medium">{item.categoriaCatalogo || 'Catálogo'}</div>
+                        </div>
+                        {item.precio && (
+                          <div className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-black text-xs rounded-lg">
+                            S/ {item.precio}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* PASO 3: PROMOCIÓN Y DESCUENTO */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <h3 className="font-bold text-slate-800 flex items-center">
+                <Gift className="w-5 h-5 mr-2 text-pink-500" /> 3. Aplicar Promoción o Descuento (Opcional)
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Precio Normal', value: 0 },
+                  { label: '🔥 -10% Dscto', value: 10 },
+                  { label: '🔥 -15% Dscto', value: 15 },
+                  { label: '🔥 -20% Dscto', value: 20 }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDiscountPercent(opt.value)}
+                    className={`py-3 px-3 rounded-xl font-bold text-xs border-2 transition-all ${
+                      discountPercent === opt.value
+                        ? 'bg-pink-600 text-white border-pink-600 shadow-md'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {currentProduct?.precio && (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl text-sm">
+                  <span className="font-bold text-emerald-900">Precio calculado en el mensaje:</span>
+                  <div className="font-black text-emerald-700 text-base">
+                    {discountPercent > 0 ? (
+                      <>
+                        <span className="line-through text-slate-400 text-xs mr-2">S/ {currentProduct.precio}</span>
+                        <span>S/ {(parseFloat(currentProduct.precio) * (1 - discountPercent / 100)).toFixed(2).replace(/\.00$/, '')} (-{discountPercent}%)</span>
+                      </>
+                    ) : (
+                      <span>S/ {currentProduct.precio}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* VISTA PREVIA EN VIVO Y BOTÓN WHATSAPP */}
+          <div className="lg:col-span-5">
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex flex-col h-full justify-between space-y-5">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 block">Sistema Anti-Spam Activo</span>
+                    <h3 className="text-lg font-bold">Vista Previa del Mensaje</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRandomSeed(prev => (prev + 1) % 35);
+                      setFooterSeed(prev => (prev + 1) % 10);
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-xl text-xs font-bold flex items-center border border-slate-700 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Cambiar Cabecera ({randomSeed + 1}/35)
+                  </button>
+                </div>
+
+                <div className="bg-emerald-950/60 border border-emerald-800/60 rounded-2xl p-4 font-sans text-xs text-emerald-50 whitespace-pre-wrap max-h-[420px] overflow-y-auto leading-relaxed">
+                  {previewMsg}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSendWhatsAppOffer}
+                  disabled={!currentProduct || !clientPhone.trim()}
+                  className="w-full py-4 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white font-black rounded-2xl shadow-lg flex items-center justify-center text-base transition-all"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" /> Enviar Oferta por WhatsApp
+                </button>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Cada vez que envías un mensaje, la cabecera y la despedida rotan automáticamente entre 350 combinaciones para evitar bloqueos en WhatsApp.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -616,7 +1112,7 @@ export default function App() {
         setClientes(data.clientes || []);
         setCuentasMaster(data.masters || []);
         setStockAV(data.stockAV || []);
-        setPlantillas(data.plantillas || []);
+        setPlantillas((data.plantillas || []).map(normalizePlantilla));
         if(data.integrantes && data.integrantes.length > 0) setIntegrantes(data.integrantes);
         setSyncStatus('sincronizado');
       } catch (parseError) { 
@@ -726,37 +1222,47 @@ export default function App() {
 
     if (idLlaveUsada) {
        const llave = stockAV.find(k => k.id === idLlaveUsada);
-       if(llave) {
+       if (llave) {
            const updatedLlave = { ...llave, estado: 'Usada', idCliente: finalClient.id };
            setStockAV(prev => prev.map(k => k.id === idLlaveUsada ? updatedLlave : k));
            await syncToSheets('guardarLlave', updatedLlave);
        }
     }
-    
-    if (sendWhatsApp) {
-       triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta, clientesAGuardar);
-    }
+    if (sendWhatsApp) triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta, clientesAGuardar);
   };
 
-  const triggerWhatsAppAlert = (client, type, tipoCuenta, arrayClientesMultiples = null) => {
+  const triggerWhatsAppAlert = (client, type, tipoCuenta, arrayClientesMultiples = null, customOfferOptions = null) => {
     let msg = ``;
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
     const configSoft = plantillas.find(p => p.nombre && client.servicio && String(p.nombre).trim().toLowerCase() === String(client.servicio).trim().toLowerCase());
 
+    if (type === 'ofrecer_catalogo' && customOfferOptions?.productObj) {
+      msg = buildCatalogOfferMessage({
+        clientName: client.nombre,
+        productObj: customOfferOptions.productObj,
+        discountPercent: customOfferOptions.discountPercent || 0
+      });
+      window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
+      setWaActionModal(null);
+      return;
+    }
+
     if (type === 'ofrecer') {
-      let opcionesOfrecer = [];
-      if (client.categoria === 'software' && configSoft) {
-        let msgs = configSoft.ofrecer;
-        if (typeof msgs === 'string') { try { msgs = JSON.parse(msgs); } catch (e) { msgs = [msgs]; } }
-        if (Array.isArray(msgs) && msgs.length > 0) opcionesOfrecer = msgs;
+      if (configSoft) {
+        msg = buildCatalogOfferMessage({
+          clientName: client.nombre,
+          productObj: configSoft,
+          discountPercent: 0
+        });
+      } else {
+        const headerRandom = CABECERAS_ANTISPAM[Math.floor(Math.random() * CABECERAS_ANTISPAM.length)]
+          .replace(/{nombre}/gi, client.nombre || 'Cliente')
+          .replace(/{producto}/gi, client.servicio || 'nuestro servicio')
+          .replace(/{negocio}/gi, parametros.nombreNegocio);
+        const footerRandom = CIERRES_ANTISPAM[Math.floor(Math.random() * CIERRES_ANTISPAM.length)];
+        msg = `${headerRandom}\n\n${footerRandom}`;
       }
-      if (opcionesOfrecer.length === 0) {
-        if (configSoft && configSoft.beneficios) opcionesOfrecer = [`¡Hola {nombre}! 👋 Te contactamos para ofrecerte *${client.servicio}*.\n\n${configSoft.beneficios}\n\n¿Te interesa?`];
-        else opcionesOfrecer = [`¡Hola {nombre}! 👋 Desde *${parametros.nombreNegocio}* te presentamos *${client.servicio}*.\n\nUna herramienta esencial para optimizar tu trabajo y mejorar tu productividad.\n\n¿Te gustaría recibir más información o conocer nuestros precios? ¡Escríbenos! 🚀`];
-      }
-      msg = opcionesOfrecer[Math.floor(Math.random() * opcionesOfrecer.length)];
-      msg = msg.replace(/{nombre}/gi, client.nombre || 'Cliente');
 
     } else if (type === 'venta') {
       msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\nTu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
@@ -1145,17 +1651,71 @@ export default function App() {
 
   const WaActionModal = () => {
     if (!waActionModal) return null;
+    const matchedTemplate = plantillas.find(
+      p => p.nombre && waActionModal.servicio && String(p.nombre).trim().toLowerCase() === String(waActionModal.servicio).trim().toLowerCase()
+    );
+    const [selectedCatalogId, setSelectedCatalogId] = useState(matchedTemplate?.id || plantillas[0]?.id || '');
+    const [modalDiscount, setModalDiscount] = useState(0);
+
+    const chosenCatalogProduct = plantillas.find(p => p.id === selectedCatalogId) || matchedTemplate || plantillas[0];
+
     return (
       <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-sm w-full animate-fadeIn">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-black text-slate-800 flex items-center"><MessageCircle className="w-6 h-6 mr-2 text-green-500"/> Notificar Cliente</h3>
+        <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full animate-fadeIn max-h-[92vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h3 className="text-xl font-black text-slate-800 flex items-center"><MessageCircle className="w-6 h-6 mr-2 text-green-500"/> Notificar a {waActionModal.nombre}</h3>
+              <p className="text-xs text-slate-400 font-bold mt-0.5">Servicio actual: {waActionModal.servicio}</p>
+            </div>
             <button onClick={() => setWaActionModal(null)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><X className="w-5 h-5"/></button>
           </div>
+
+          {/* BLOQUE NUEVO: OFRECER CUALQUIER PLATAFORMA DEL CATÁLOGO CON DESCUENTO Y ANTI-SPAM */}
+          {plantillas.length > 0 && (
+            <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-3">
+              <div className="text-xs font-black uppercase text-amber-900 flex items-center justify-between">
+                <span>🚀 Ofrecer Plataforma del Catálogo</span>
+                <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded text-[10px]">Anti-Spam 35x</span>
+              </div>
+              <select
+                className="w-full border-2 border-amber-300 rounded-xl p-2.5 text-sm font-bold bg-white text-slate-800"
+                value={selectedCatalogId}
+                onChange={(e) => setSelectedCatalogId(e.target.value)}
+              >
+                {plantillas.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} {p.precio ? `(S/ ${p.precio})` : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[0, 10, 15, 20].map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setModalDiscount(d)}
+                    className={`py-1.5 rounded-lg font-bold text-xs border ${
+                      modalDiscount === d ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-slate-700 border-amber-200'
+                    }`}
+                  >
+                    {d === 0 ? 'Normal' : `-${d}%`}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => triggerWhatsAppAlert(waActionModal, 'ofrecer_catalogo', null, null, { productObj: chosenCatalogProduct, discountPercent: modalDiscount })}
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow flex items-center justify-center"
+              >
+                <Star className="w-4 h-4 mr-1.5" /> Enviar Explicación + Oferta {modalDiscount > 0 ? `(-${modalDiscount}%)` : ''}
+              </button>
+            </div>
+          )}
+
           <div className="space-y-3">
             {waActionModal.categoria === 'software' ? (
               <>
-                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'ofrecer')} className="w-full p-4 bg-cyan-50 border-2 border-cyan-200 rounded-2xl flex items-center text-left hover:bg-cyan-100"><div className="bg-cyan-500 text-white p-2.5 rounded-xl mr-3"><Briefcase className="w-5 h-5"/></div><div><div className="font-bold text-cyan-900">Ofrecer / Prospectar 🚀</div></div></button>
+                <button onClick={() => triggerWhatsAppAlert(waActionModal, 'ofrecer')} className="w-full p-4 bg-cyan-50 border-2 border-cyan-200 rounded-2xl flex items-center text-left hover:bg-cyan-100"><div className="bg-cyan-500 text-white p-2.5 rounded-xl mr-3"><Briefcase className="w-5 h-5"/></div><div><div className="font-bold text-cyan-900">Ofrecer {waActionModal.servicio} 🚀</div></div></button>
                 <button onClick={() => triggerWhatsAppAlert(waActionModal, 'venta')} className="w-full p-4 bg-green-50 border-2 border-green-200 rounded-2xl flex items-center text-left hover:bg-green-100"><div className="bg-green-500 text-white p-2.5 rounded-xl mr-3"><Plus className="w-5 h-5"/></div><div><div className="font-bold text-green-900">Entregar Credenciales</div></div></button>
                 <button onClick={() => triggerWhatsAppAlert(waActionModal, 'alerta')} className="w-full p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl flex items-center text-left hover:bg-orange-100"><div className="bg-orange-500 text-white p-2.5 rounded-xl mr-3"><AlertTriangle className="w-5 h-5"/></div><div><div className="font-bold text-orange-900">Alerta Vencimiento</div></div></button>
               </>
@@ -1263,6 +1823,7 @@ export default function App() {
           <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-7xl mx-auto h-full">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} />}
+              {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'software' && <SoftwareList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
