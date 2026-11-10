@@ -15,7 +15,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBF
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 const ADMIN_PASSWORD = "S15t3w4s4860"; 
 const CATALOG_URL = "https://kgb-streaming.ola.click/products";
-const LOGO_URL = "https://i.imgur.com/i5rfuKY.png";
+const LOGO_URL = "https://i.imgur.com/1jKx236.png";
 
 // ==========================================
 // 2. UTILIDADES (Lógica Pura)
@@ -336,13 +336,13 @@ const buildVipGiftMessage = ({
 // ==========================================
 const KgbNeonLogo = ({ size = 'md', showText = false }) => {
   const [imgError, setImgError] = useState(false);
-  const dimensions = size === 'xl' ? 'w-32 h-32' : size === 'lg' ? 'w-16 h-16' : size === 'sm' ? 'w-9 h-9' : 'w-12 h-12';
+  const dimensions = size === 'xl' ? 'w-28 h-28 sm:w-32 sm:h-32' : size === 'lg' ? 'w-12 h-12 sm:w-16 sm:h-16' : size === 'sm' ? 'w-8 h-8 sm:w-9 sm:h-9' : 'w-10 h-10 sm:w-12 sm:h-12';
 
   return (
-    <div className="inline-flex items-center select-none">
+    <div className="inline-flex items-center select-none flex-shrink-0">
       <div className={`relative ${dimensions} flex items-center justify-center flex-shrink-0 group`}>
-        {/* Halo de luz neón cian y púrpura detrás del escudo */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-600 blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+        {/* Halo de luz neón cian y púrpura detrás del escudo transparente */}
+        <div className="absolute inset-1 rounded-full bg-gradient-to-r from-cyan-400/40 via-blue-500/40 to-fuchsia-600/40 blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
 
         {!imgError ? (
           <img
@@ -350,7 +350,7 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
             alt="KGB Streaming"
             referrerPolicy="no-referrer"
             onError={() => setImgError(true)}
-            className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_14px_rgba(0,240,255,0.8)] transition-transform duration-300 group-hover:scale-105"
+            className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_10px_rgba(0,240,255,0.65)] transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <svg viewBox="0 0 240 240" className="relative z-10 w-full h-full drop-shadow-[0_0_12px_rgba(0,240,255,0.65)]">
@@ -454,22 +454,15 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, setIsAuthenticated }) => (
   <>
     {isMobileMenuOpen && <div className="fixed inset-0 bg-[#050514]/80 z-40 md:hidden backdrop-blur-md animate-fadeIn" onClick={() => setIsMobileMenuOpen(false)} />}
-    <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[4px_0_30px_rgba(0,240,255,0.12)] border-r border-cyan-500/20 relative overflow-hidden`}>
-      {/* Sello de agua sutil en el fondo del menú lateral */}
-      <img
-        src={LOGO_URL}
-        alt=""
-        referrerPolicy="no-referrer"
-        className="absolute -bottom-10 -left-10 w-56 h-56 object-contain opacity-[0.04] pointer-events-none select-none"
-      />
-      <div className="p-5 bg-[#040510] flex justify-between items-center border-b border-fuchsia-500/20 relative overflow-hidden">
+    <aside className={`fixed md:static inset-y-0 left-0 w-64 flex-shrink-0 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[4px_0_30px_rgba(0,240,255,0.12)] border-r border-cyan-500/20`}>
+      <div className="p-4 sm:p-5 bg-[#040510] flex justify-between items-center border-b border-fuchsia-500/20 relative overflow-hidden">
         <div className="absolute -left-6 -top-6 w-24 h-24 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none"></div>
         <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-fuchsia-500/15 rounded-full blur-2xl pointer-events-none"></div>
         <KgbNeonLogo size="md" showText={true} />
-        <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-cyan-400"><X className="w-6 h-6" /></button>
+        <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-cyan-400 p-1"><X className="w-6 h-6" /></button>
       </div>
       
-      <div className="flex-1 overflow-y-auto py-6 flex flex-col space-y-1.5 px-3">
+      <div className="flex-1 overflow-y-auto py-6 flex flex-col space-y-1.5 px-3 relative">
         <div className="text-[11px] font-black text-cyan-400/70 uppercase tracking-widest mb-2 px-3 mt-2">Principal</div>
         <button onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-500/20 via-blue-600/20 to-fuchsia-600/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(0,242,254,0.2)]' : 'hover:bg-white/5 hover:text-cyan-200'}`}><LayoutDashboard className="w-5 h-5 mr-3 text-cyan-400" /> Panel de Control</button>
         <button onClick={() => { setActiveTab('catalogo'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'catalogo' ? 'bg-gradient-to-r from-cyan-500/20 to-fuchsia-600/20 text-fuchsia-300 font-black border border-fuchsia-400/40 shadow-[0_0_15px_rgba(217,70,239,0.2)]' : 'hover:bg-white/5 hover:text-fuchsia-200'}`}><Star className="w-5 h-5 mr-3 text-fuchsia-400" /> Catálogo y Ofertas</button>
@@ -681,25 +674,25 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
 
   return (
     <div className="space-y-6 animate-fadeIn relative">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-sm p-5 rounded-3xl border border-cyan-500/20 shadow-sm relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white/90 backdrop-blur-sm p-4 sm:p-5 rounded-3xl border border-cyan-500/20 shadow-sm relative overflow-hidden">
         <img
           src={LOGO_URL}
           alt=""
           referrerPolicy="no-referrer"
-          className="absolute -right-6 -bottom-8 w-36 h-36 object-contain opacity-[0.07] pointer-events-none select-none"
+          className="hidden sm:block absolute -right-4 -bottom-6 w-32 h-32 object-contain opacity-[0.07] pointer-events-none select-none"
         />
-        <div className="flex items-center space-x-4 relative z-10">
+        <div className="flex items-center space-x-3 sm:space-x-4 relative z-10 min-w-0">
           <KgbNeonLogo size="lg" showText={false} />
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-fuchsia-600 bg-clip-text text-transparent">Panel de Control KGB</h1>
-            <p className="text-slate-500 mt-0.5 text-sm font-medium">Resumen general y alertas operativas sincronizadas.</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-fuchsia-600 bg-clip-text text-transparent truncate">Panel de Control KGB</h1>
+            <p className="text-slate-500 mt-0.5 text-xs sm:text-sm font-medium">Resumen general y alertas operativas sincronizadas.</p>
           </div>
         </div>
         <a
           href={CATALOG_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative z-10 inline-flex items-center px-4 py-2.5 rounded-2xl bg-[#070818] text-cyan-300 hover:text-white border border-cyan-400/40 text-xs font-black tracking-wide shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all w-fit"
+          className="relative z-10 inline-flex items-center justify-center px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-[#070818] text-cyan-300 hover:text-white border border-cyan-400/40 text-xs font-black tracking-wide shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all w-full sm:w-fit flex-shrink-0"
         >
           <Star className="w-4 h-4 mr-2 text-fuchsia-400" /> Ver Mi Catálogo Web
         </a>
@@ -709,18 +702,18 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       {/* CEREZA DEL PASTEL: SORTEO INTELIGENTE DEL DÍA (100% INTERNO) */}
       {/* ========================================== */}
       {ganadorDelDia && (
-        <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40">
-          <div className="absolute -left-16 -top-16 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-fuchsia-600/25 rounded-full blur-3xl pointer-events-none"></div>
-          {/* Sello de agua del escudo KGB dentro de la tarjeta de sorteo */}
+        <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40">
+          <div className="absolute -left-16 -top-16 w-48 h-48 sm:w-64 sm:h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -right-16 -bottom-16 w-48 h-48 sm:w-64 sm:h-64 bg-fuchsia-600/25 rounded-full blur-3xl pointer-events-none"></div>
+          {/* Sello de agua del escudo KGB transparente dentro de la tarjeta de sorteo */}
           <img
             src={LOGO_URL}
             alt=""
             referrerPolicy="no-referrer"
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-56 h-56 object-contain opacity-[0.09] pointer-events-none select-none"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-36 h-36 sm:w-52 sm:h-52 object-contain opacity-[0.08] pointer-events-none select-none"
           />
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-2.5 flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative z-10">
+            <div className="space-y-2.5 flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-gradient-to-r from-cyan-500/25 to-fuchsia-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-black uppercase tracking-wider flex items-center shadow-[0_0_12px_rgba(0,240,255,0.25)]">
                   <Gift className="w-3.5 h-3.5 mr-1.5 text-fuchsia-400" /> Sorteo Interno KGB • Cliente a Engreír Hoy
@@ -818,11 +811,11 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border-2 border-cyan-500/25 shadow-[0_4px_20px_rgba(0,240,255,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Propias</div> <div className="text-3xl font-black text-cyan-600">{stats.streamingPropios}</div> </div><div className="w-12 h-12 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center"><MonitorPlay className="w-6 h-6 text-cyan-500" /></div></div>
-        <div className="p-5 rounded-2xl bg-white border-2 border-blue-500/25 shadow-[0_4px_20px_rgba(59,130,246,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Cuentas Externas</div> <div className="text-3xl font-black text-blue-600">{stats.streamingExternos}</div> </div><div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center"><Cloud className="w-6 h-6 text-blue-500" /></div></div>
-        <div className="p-5 rounded-2xl bg-white border-2 border-fuchsia-500/25 shadow-[0_4px_20px_rgba(217,70,239,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Stock Antivirus</div> <div className="text-3xl font-black text-fuchsia-600">{stats.llavesDisponibles}</div> </div><div className="w-12 h-12 rounded-2xl bg-fuchsia-50 border border-fuchsia-200 flex items-center justify-center"><Key className="w-6 h-6 text-fuchsia-500" /></div></div>
-        <div className="p-5 rounded-2xl bg-white border-2 border-purple-500/25 shadow-[0_4px_20px_rgba(168,85,247,0.08)] flex items-center justify-between"><div className="flex-1"> <div className="text-slate-500 text-sm font-bold mb-1">Clientes Software</div> <div className="text-3xl font-black text-purple-600">{stats.software}</div> </div><div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center"><Briefcase className="w-6 h-6 text-purple-500" /></div></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-cyan-500/25 shadow-[0_4px_20px_rgba(0,240,255,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Cuentas Propias</div> <div className="text-2xl sm:text-3xl font-black text-cyan-600">{stats.streamingPropios}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center"><MonitorPlay className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-500" /></div></div>
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-blue-500/25 shadow-[0_4px_20px_rgba(59,130,246,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Cuentas Externas</div> <div className="text-2xl sm:text-3xl font-black text-blue-600">{stats.streamingExternos}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center"><Cloud className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" /></div></div>
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-fuchsia-500/25 shadow-[0_4px_20px_rgba(217,70,239,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Stock Antivirus</div> <div className="text-2xl sm:text-3xl font-black text-fuchsia-600">{stats.llavesDisponibles}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-fuchsia-50 border border-fuchsia-200 flex items-center justify-center"><Key className="w-5 h-5 sm:w-6 sm:h-6 text-fuchsia-500" /></div></div>
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-purple-500/25 shadow-[0_4px_20px_rgba(168,85,247,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Clientes Software</div> <div className="text-2xl sm:text-3xl font-black text-purple-600">{stats.software}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center"><Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" /></div></div>
       </div>
       
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
@@ -3217,20 +3210,20 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen bg-[#040511] items-center justify-center font-sans text-slate-300 relative overflow-hidden">
-        <div className="absolute -left-24 top-1/4 w-[550px] h-[550px] bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none"></div>
-        <div className="absolute -right-24 bottom-1/4 w-[550px] h-[550px] bg-fuchsia-600/20 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="flex h-screen w-full bg-[#040511] items-center justify-center font-sans text-slate-300 relative overflow-hidden px-4">
+        <div className="absolute -left-24 top-1/4 w-72 h-72 sm:w-[550px] sm:h-[550px] bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute -right-24 bottom-1/4 w-72 h-72 sm:w-[550px] sm:h-[550px] bg-fuchsia-600/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f2fe10_1px,transparent_1px),linear-gradient(to_bottom,#d946ef10_1px,transparent_1px)] bg-[size:28px_28px]"></div>
-        {/* Sello de agua gigante en la pantalla de acceso */}
+        {/* Sello de agua transparente en la pantalla de acceso */}
         <img
           src={LOGO_URL}
           alt=""
           referrerPolicy="no-referrer"
-          className="absolute inset-0 m-auto w-[620px] h-[620px] object-contain opacity-[0.05] pointer-events-none select-none"
+          className="absolute inset-0 m-auto w-72 h-72 sm:w-[500px] sm:h-[500px] object-contain opacity-[0.06] pointer-events-none select-none"
         />
 
-        <div className="relative z-10 w-full max-w-md p-8 animate-fadeIn">
-          <div className="bg-[#080a1c]/90 backdrop-blur-xl border-2 border-cyan-400/30 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,240,255,0.22)] flex flex-col items-center relative overflow-hidden">
+        <div className="relative z-10 w-full max-w-md p-2 sm:p-8 animate-fadeIn">
+          <div className="bg-[#080a1c]/90 backdrop-blur-xl border-2 border-cyan-400/30 p-6 sm:p-8 rounded-3xl shadow-[0_0_50px_rgba(0,240,255,0.22)] flex flex-col items-center relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500"></div>
 
             <div className="mb-5 relative">
@@ -3278,29 +3271,31 @@ export default function App() {
         .animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-      <div className="flex h-screen bg-[#f3f5fb] font-sans text-slate-900 overflow-hidden">
+      <div className="flex h-screen w-full bg-[#f3f5fb] font-sans text-slate-900 overflow-hidden">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} setIsAuthenticated={setIsAuthenticated} />
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
-          <header className="bg-[#080a1c] text-white shadow-[0_4px_20px_rgba(0,240,255,0.12)] border-b border-cyan-500/30 px-4 md:px-6 py-3.5 flex justify-between items-center z-10 relative">
+        <div className="flex-1 flex flex-col h-full min-w-0 w-full overflow-hidden">
+          <header className="bg-[#080a1c] text-white shadow-[0_4px_20px_rgba(0,240,255,0.12)] border-b border-cyan-500/30 px-3 sm:px-6 py-3 flex justify-between items-center z-10 relative">
             <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500"></div>
-            <div className="flex items-center">
-              <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mr-3 text-cyan-400 hover:bg-white/10 p-1.5 rounded-lg"><Menu className="w-6 h-6" /></button>
-              <div className="mr-3 hidden sm:block"><KgbNeonLogo size="sm" showText={false} /></div>
-              <div className="font-black tracking-wider uppercase text-xs md:text-sm truncate flex items-center">
+            <div className="flex items-center min-w-0">
+              <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mr-2.5 text-cyan-400 hover:bg-white/10 p-1.5 rounded-lg flex-shrink-0"><Menu className="w-6 h-6" /></button>
+              <div className="mr-2.5 flex-shrink-0"><KgbNeonLogo size="sm" showText={false} /></div>
+              <div className="font-black tracking-wider uppercase text-xs md:text-sm truncate flex items-center min-w-0">
                 <span className="hidden sm:inline text-slate-400 mr-2">PLATAFORMA OPERATIVA •</span>
-                <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent">{parametros.nombreNegocio}</span>
+                <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent truncate">{parametros.nombreNegocio}</span>
               </div>
             </div>
-            <SyncIndicator />
+            <div className="flex-shrink-0 ml-2">
+              <SyncIndicator />
+            </div>
           </header>
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-slate-100 to-fuchsia-500/5 relative">
-            {/* Sello de agua central fijo y elegante en toda la plataforma */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-slate-100 to-fuchsia-500/5 relative">
+            {/* Sello de agua central transparente adaptado a celular y PC */}
             <div className="fixed inset-0 md:left-64 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
               <img
                 src={LOGO_URL}
-                alt="Sello de Agua KGB"
+                alt=""
                 referrerPolicy="no-referrer"
-                className="w-[420px] h-[420px] md:w-[540px] md:h-[540px] object-contain opacity-[0.045] filter drop-shadow-[0_0_25px_rgba(0,240,255,0.2)]"
+                className="w-64 h-64 sm:w-96 sm:h-96 md:w-[480px] md:h-[480px] object-contain opacity-[0.05] filter drop-shadow-[0_0_20px_rgba(0,240,255,0.15)]"
               />
             </div>
             <div className="max-w-7xl mx-auto h-full relative z-10">
