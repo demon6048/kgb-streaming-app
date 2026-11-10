@@ -14,6 +14,8 @@ import './index.css';
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBFTTZ3UyiIB_lh9nZ1zagAJ6-ylxfQUvRKPkJMC_MIvkJUjIy/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 const ADMIN_PASSWORD = "S15t3w4s4860"; 
+const CATALOG_URL = "https://kgb-streaming.ola.click/products";
+const LOGO_URL = "https://i.imgur.com/i5rfuKY.png";
 
 // ==========================================
 // 2. UTILIDADES (Lógica Pura)
@@ -177,6 +179,20 @@ const CIERRES_ANTISPAM = [
   "Gracias por tu tiempo y por confiar siempre en nosotros. ¡Avísanos si te animas a activarlo hoy! 🎉"
 ];
 
+const FIRMAS_CATALOGO_DISIMULADAS = [
+  `✨ _PD: Si deseas explorar todo lo que tenemos disponible para ti, visita nuestra vitrina digital:_\n👉 ${CATALOG_URL}`,
+  `🛍️ _Por cierto, puedes descubrir más plataformas y promociones en nuestro catálogo oficial:_\n👉 ${CATALOG_URL}`,
+  `🌐 _Te dejamos por aquí nuestro catálogo actualizado por si deseas dar un vistazo a otras opciones:_\n👉 ${CATALOG_URL}`,
+  `💫 _Conoce todas nuestras cuentas Premium y licencias disponibles visitando nuestra tienda:_\n👉 ${CATALOG_URL}`,
+  `📱 _Cuando gustes ver todas nuestras plataformas y precios actualizados, entra aquí:_\n👉 ${CATALOG_URL}`,
+  `🚀 _Explora nuestro catálogo completo en línea en cualquier momento desde este enlace:_\n👉 ${CATALOG_URL}`
+];
+
+const getCatalogSignature = (seed = null) => {
+  const idx = seed !== null ? (Math.abs(seed) % FIRMAS_CATALOGO_DISIMULADAS.length) : Math.floor(Math.random() * FIRMAS_CATALOGO_DISIMULADAS.length);
+  return `\n\n━━━━━━━━━━━━━━━━━━\n${FIRMAS_CATALOGO_DISIMULADAS[idx]}`;
+};
+
 const buildCatalogOfferMessage = ({ clientName, productObj, discountPercent = 0, headerIdx = null, footerIdx = null }) => {
   if (!productObj) return '';
   const nombreFinal = clientName || 'Cliente';
@@ -216,6 +232,7 @@ const buildCatalogOfferMessage = ({ clientName, productObj, discountPercent = 0,
   }
 
   msg += CIERRES_ANTISPAM[chosenFooterIdx];
+  msg += getCatalogSignature(chosenFooterIdx);
   return msg;
 };
 
@@ -310,6 +327,7 @@ const buildVipGiftMessage = ({
   }
 
   msg += `\n${CIERRES_REGALO_VIP[fIdx]}`;
+  msg += getCatalogSignature(fIdx);
   return msg;
 };
 
@@ -328,10 +346,11 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
 
         {!imgError ? (
           <img
-            src="/logo.png"
+            src={LOGO_URL}
             alt="KGB Streaming"
+            referrerPolicy="no-referrer"
             onError={() => setImgError(true)}
-            className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_12px_rgba(0,240,255,0.7)]"
+            className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_14px_rgba(0,240,255,0.8)] transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <svg viewBox="0 0 240 240" className="relative z-10 w-full h-full drop-shadow-[0_0_12px_rgba(0,240,255,0.65)]">
@@ -435,7 +454,14 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, setIsAuthenticated }) => (
   <>
     {isMobileMenuOpen && <div className="fixed inset-0 bg-[#050514]/80 z-40 md:hidden backdrop-blur-md animate-fadeIn" onClick={() => setIsMobileMenuOpen(false)} />}
-    <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[4px_0_30px_rgba(0,240,255,0.12)] border-r border-cyan-500/20`}>
+    <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[4px_0_30px_rgba(0,240,255,0.12)] border-r border-cyan-500/20 relative overflow-hidden`}>
+      {/* Sello de agua sutil en el fondo del menú lateral */}
+      <img
+        src={LOGO_URL}
+        alt=""
+        referrerPolicy="no-referrer"
+        className="absolute -bottom-10 -left-10 w-56 h-56 object-contain opacity-[0.04] pointer-events-none select-none"
+      />
       <div className="p-5 bg-[#040510] flex justify-between items-center border-b border-fuchsia-500/20 relative overflow-hidden">
         <div className="absolute -left-6 -top-6 w-24 h-24 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none"></div>
         <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-fuchsia-500/15 rounded-full blur-2xl pointer-events-none"></div>
@@ -654,12 +680,29 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
   });
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-fuchsia-600 bg-clip-text text-transparent">Panel de Control KGB</h1>
-          <p className="text-slate-500 mt-1 font-medium">Resumen general y alertas operativas sincronizadas.</p>
+    <div className="space-y-6 animate-fadeIn relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-sm p-5 rounded-3xl border border-cyan-500/20 shadow-sm relative overflow-hidden">
+        <img
+          src={LOGO_URL}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="absolute -right-6 -bottom-8 w-36 h-36 object-contain opacity-[0.07] pointer-events-none select-none"
+        />
+        <div className="flex items-center space-x-4 relative z-10">
+          <KgbNeonLogo size="lg" showText={false} />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-fuchsia-600 bg-clip-text text-transparent">Panel de Control KGB</h1>
+            <p className="text-slate-500 mt-0.5 text-sm font-medium">Resumen general y alertas operativas sincronizadas.</p>
+          </div>
         </div>
+        <a
+          href={CATALOG_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative z-10 inline-flex items-center px-4 py-2.5 rounded-2xl bg-[#070818] text-cyan-300 hover:text-white border border-cyan-400/40 text-xs font-black tracking-wide shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all w-fit"
+        >
+          <Star className="w-4 h-4 mr-2 text-fuchsia-400" /> Ver Mi Catálogo Web
+        </a>
       </div>
 
       {/* ========================================== */}
@@ -669,6 +712,13 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
         <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40">
           <div className="absolute -left-16 -top-16 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-fuchsia-600/25 rounded-full blur-3xl pointer-events-none"></div>
+          {/* Sello de agua del escudo KGB dentro de la tarjeta de sorteo */}
+          <img
+            src={LOGO_URL}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-56 h-56 object-contain opacity-[0.09] pointer-events-none select-none"
+          />
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
             <div className="space-y-2.5 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -1785,10 +1835,13 @@ const RegalosVipHboView = ({
 
   const handleSendConversionWhatsApp = (client) => {
     const cleanPlat = (client.servicio || 'HBO Max').replace(' (Regalo VIP)', '');
-    const msg = mensajeConversion
+    let msg = mensajeConversion
       .replace(/{nombre}/gi, client.nombre || 'Cliente')
       .replace(/{producto}/gi, cleanPlat)
       .replace(/{negocio}/gi, parametros.nombreNegocio);
+    if (!msg.includes(CATALOG_URL)) {
+      msg += getCatalogSignature();
+    }
     window.open(`https://wa.me/${codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
@@ -2742,6 +2795,10 @@ export default function App() {
       }
       msg += opcionesAlerta[Math.floor(Math.random() * opcionesAlerta.length)];
     }
+
+    if (!msg.includes(CATALOG_URL)) {
+      msg += getCatalogSignature();
+    }
     
     window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
     setWaActionModal(null);
@@ -2797,7 +2854,7 @@ export default function App() {
 2️⃣ Abre la app, omite los pasos iniciales y ve a la opción de 'Suscripción' o 'Ingresar clave de licencia'.
 3️⃣ Pega el código de activación que te hemos enviado arriba.${mensajeAsiduo}
 
-¡Disfruta tu regalo y gracias por confiar siempre en ${parametros.nombreNegocio}! 💙`;
+¡Disfruta tu regalo y gracias por confiar siempre en ${parametros.nombreNegocio}! 💙${getCatalogSignature()}`;
 
     window.open(`https://wa.me/${parametros.codigoPais}${client.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -3164,6 +3221,13 @@ export default function App() {
         <div className="absolute -left-24 top-1/4 w-[550px] h-[550px] bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none"></div>
         <div className="absolute -right-24 bottom-1/4 w-[550px] h-[550px] bg-fuchsia-600/20 rounded-full blur-[140px] pointer-events-none"></div>
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f2fe10_1px,transparent_1px),linear-gradient(to_bottom,#d946ef10_1px,transparent_1px)] bg-[size:28px_28px]"></div>
+        {/* Sello de agua gigante en la pantalla de acceso */}
+        <img
+          src={LOGO_URL}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 m-auto w-[620px] h-[620px] object-contain opacity-[0.05] pointer-events-none select-none"
+        />
 
         <div className="relative z-10 w-full max-w-md p-8 animate-fadeIn">
           <div className="bg-[#080a1c]/90 backdrop-blur-xl border-2 border-cyan-400/30 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,240,255,0.22)] flex flex-col items-center relative overflow-hidden">
@@ -3229,8 +3293,17 @@ export default function App() {
             </div>
             <SyncIndicator />
           </header>
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-slate-100 to-fuchsia-500/5">
-            <div className="max-w-7xl mx-auto h-full">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-slate-100 to-fuchsia-500/5 relative">
+            {/* Sello de agua central fijo y elegante en toda la plataforma */}
+            <div className="fixed inset-0 md:left-64 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
+              <img
+                src={LOGO_URL}
+                alt="Sello de Agua KGB"
+                referrerPolicy="no-referrer"
+                className="w-[420px] h-[420px] md:w-[540px] md:h-[540px] object-contain opacity-[0.045] filter drop-shadow-[0_0_25px_rgba(0,240,255,0.2)]"
+              />
+            </div>
+            <div className="max-w-7xl mx-auto h-full relative z-10">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} processedClients={processedClients} stockAV={stockAV} handleGiveGift={handleGiveGift} setActiveTab={setActiveTab} showToast={showToast} />}
               {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'regalos_vip' && <RegalosVipHboView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} plantillas={plantillas} setPlantillas={setPlantillas} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
