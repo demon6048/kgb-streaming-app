@@ -27,8 +27,9 @@ const getToday = () => {
 
 const parseDateString = (dateString) => {
   if (!dateString) return null;
-  const [y, m, d] = dateString.split('T')[0].split('-');
-  return new Date(y, m - 1, d);
+  const [y, m, d] = String(dateString).split('T')[0].split('-');
+  const parsed = new Date(y, m - 1, d);
+  return isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const formatDateToLocal = (dateString) => {
@@ -497,11 +498,11 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
 // ==========================================
 const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = [], stockAV = [], handleGiveGift, setActiveTab, showToast }) => {
   const [filtroAlertas, setFiltroAlertas] = useState('todas');
-  const [isSpinningWinner, setIsSpinningWinner] = useState(false);
-  const [roulettePreviewName, setRoulettePreviewName] = useState('');
+  const sorteoInicializadoRef = useRef(false);
   const [pamperedPhones, setPamperedPhones] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('kgb_pampered_cycle_v1') || '[]');
+      const parsed = JSON.parse(localStorage.getItem('kgb_pampered_cycle_v1') || '[]');
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
@@ -510,7 +511,7 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     try {
       const saved = JSON.parse(localStorage.getItem('kgb_daily_winner_v1') || 'null');
       const todayKey = getToday().toISOString().split('T')[0];
-      if (saved && saved.date === todayKey && saved.phone) return saved.phone;
+      if (saved && saved.date === todayKey && saved.phone) return String(saved.phone).trim();
       return null;
     } catch (e) {
       return null;
@@ -527,7 +528,8 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       if (!phoneKey || !c.nombre) return;
 
       const inicioDate = parseDateString(c.fechaInicio) || today;
-      const diasAntiguedad = Math.max(1, Math.ceil((today - inicioDate) / (1000 * 60 * 60 * 24)));
+      const diffDays = Math.ceil((today - inicioDate) / (1000 * 60 * 60 * 24));
+      const diasAntiguedad = Number.isFinite(diffDays) ? Math.max(1, diffDays) : 1;
       const esRegaloPrevio = String(c.servicio || '').includes('Regalo') || String(c.detallesLicencia || '').includes('Regalo') || String(c.detallesLicencia || '').includes('Enganche');
 
       if (!map.has(phoneKey)) {
@@ -552,12 +554,11 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     });
 
     return Array.from(map.values()).map(item => {
-      // Puntaje (Tickets de probabilidad): Todos participan, pero los más antiguos y renovadores tienen más boletos
       const puntosBase = 15;
       const puntosPorServicios = item.totalServicios * 25;
       const puntosPorAntiguedad = Math.min(120, Math.floor(item.maxAntiguedadDias / 3) * 2);
       const puntosPorActivo = item.activosCount > 0 ? 20 : 0;
-      const scoreTotal = puntosBase + puntosPorServicios + puntosPorAntiguedad + puntosPorActivo;
+      const scoreTotal = Math.max(1, (puntosBase + puntosPorServicios + puntosPorAntiguedad + puntosPorActivo) || 15);
 
       let estrellas = 3;
       let nivelTexto = 'Cliente Constante';
@@ -581,14 +582,14 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     });
   }, [processedClients]);
 
-  // Función de sorteo ponderado (Garantiza que todos ganen antes de repetir el ciclo)
+  // Función de sorteo directo sin bucles de intervalos
   const realizarSorteoInteligente = useCallback((forzarManual = false, listaExcluidosCustom = null) => {
     if (clientesCalificados.length === 0) return;
 
     const excluidos = listaExcluidosCustom !== null ? listaExcluidosCustom : pamperedPhones;
     let candidatos = clientesCalificados.filter(c => !excluidos.includes(c.telefono));
 
-    // Si ya engreímos a todos los clientes de la base de datos, reiniciamos el ciclo automáticamente
+    // Si ya engreímos a todos los clientes de la base de datos, reiniciamos el ciclo limpiamente
     if (candidatos.length === 0) {
       candidatos = [...clientesCalificados];
       setPamperedPhones([]);
@@ -597,46 +598,34 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
 
     // Evitar repetir exactamente el mismo si se presiona "Sortear otro" y hay más de 1 candidato
     if (forzarManual && candidatos.length > 1 && dailyWinnerPhone) {
-      candidatos = candidatos.filter(c => c.telefono !== dailyWinnerPhone);
+      const sinActual = candidatos.filter(c => c.telefono !== dailyWinnerPhone);
+      if (sinActual.length > 0) candidatos = sinActual;
     }
 
-    const totalTickets = candidatos.reduce((acc, c) => acc + c.scoreTotal, 0);
+    const totalTickets = candidatos.reduce((acc, c) => acc + (Number.isFinite(c.scoreTotal) ? c.scoreTotal : 15), 0);
     let randomTicket = Math.random() * totalTickets;
     let elegido = candidatos[0];
 
     for (const cand of candidatos) {
-      randomTicket -= cand.scoreTotal;
+      randomTicket -= (Number.isFinite(cand.scoreTotal) ? cand.scoreTotal : 15);
       if (randomTicket <= 0) {
         elegido = cand;
         break;
       }
     }
 
-    const todayKey = getToday().toISOString().split('T')[0];
+    if (!elegido) elegido = candidatos[0];
+    if (!elegido) return;
 
-    if (forzarManual) {
-      setIsSpinningWinner(true);
-      let step = 0;
-      const interval = setInterval(() => {
-        const randomPreview = candidatos[Math.floor(Math.random() * candidatos.length)];
-        setRoulettePreviewName(randomPreview?.nombre || '');
-        step++;
-        if (step >= 10) {
-          clearInterval(interval);
-          setIsSpinningWinner(false);
-          setDailyWinnerPhone(elegido.telefono);
-          localStorage.setItem('kgb_daily_winner_v1', JSON.stringify({ date: todayKey, phone: elegido.telefono }));
-        }
-      }, 75);
-    } else {
-      setDailyWinnerPhone(elegido.telefono);
-      localStorage.setItem('kgb_daily_winner_v1', JSON.stringify({ date: todayKey, phone: elegido.telefono }));
-    }
+    const todayKey = getToday().toISOString().split('T')[0];
+    setDailyWinnerPhone(elegido.telefono);
+    localStorage.setItem('kgb_daily_winner_v1', JSON.stringify({ date: todayKey, phone: elegido.telefono }));
   }, [clientesCalificados, pamperedPhones, dailyWinnerPhone]);
 
-  // Seleccionar automáticamente al ganador del día al abrir el programa
+  // Seleccionar automáticamente al ganador del día una sola vez al cargar los clientes
   useEffect(() => {
-    if (clientesCalificados.length > 0) {
+    if (clientesCalificados.length > 0 && !sorteoInicializadoRef.current) {
+      sorteoInicializadoRef.current = true;
       const existeActual = dailyWinnerPhone && clientesCalificados.some(c => c.telefono === dailyWinnerPhone);
       if (!existeActual) {
         realizarSorteoInteligente(false);
@@ -649,14 +638,15 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     return clientesCalificados.find(c => c.telefono === dailyWinnerPhone) || clientesCalificados[0];
   }, [clientesCalificados, dailyWinnerPhone]);
 
-  const marcarComoEngreidoHoy = ( PasarAlSiguiente = false ) => {
+  const marcarComoEngreidoHoy = (pasarAlSiguiente = false) => {
     if (!ganadorDelDia) return;
     const nuevosEngreidos = Array.from(new Set([...pamperedPhones, ganadorDelDia.telefono]));
     setPamperedPhones(nuevosEngreidos);
     localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify(nuevosEngreidos));
-    if (showToast) showToast(`¡${ganadorDelDia.nombre} marcado como engreído en este ciclo!`);
-    if (PasarAlSiguiente) {
+    if (pasarAlSiguiente) {
       realizarSorteoInteligente(true, nuevosEngreidos);
+    } else if (showToast) {
+      showToast(`¡${ganadorDelDia.nombre} marcado como engreído en este ciclo!`);
     }
   };
 
@@ -729,34 +719,26 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                  {isSpinningWinner ? (
-                    <span className="text-amber-300 animate-pulse">🎲 Sorteando: {roulettePreviewName}...</span>
-                  ) : (
-                    ganadorDelDia.nombre
-                  )}
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white truncate">
+                  {ganadorDelDia.nombre}
                 </h2>
-                {!isSpinningWinner && (
-                  <div className="flex items-center space-x-1 bg-white/10 px-3 py-1 rounded-xl w-fit">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <Star
-                        key={idx}
-                        className={`w-4 h-4 ${idx < ganadorDelDia.estrellas ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`}
-                      />
-                    ))}
-                    <span className="text-xs font-bold text-amber-200 ml-1.5">{ganadorDelDia.nivelTexto}</span>
-                  </div>
-                )}
+                <div className="flex items-center space-x-1 bg-white/10 px-3 py-1 rounded-xl w-fit flex-shrink-0">
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <Star
+                      key={idx}
+                      className={`w-4 h-4 ${idx < ganadorDelDia.estrellas ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`}
+                    />
+                  ))}
+                  <span className="text-xs font-bold text-amber-200 ml-1.5">{ganadorDelDia.nivelTexto}</span>
+                </div>
               </div>
 
-              {!isSpinningWinner && (
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-300 font-medium">
-                  <span>📱 WhatsApp: <strong className="text-white font-mono">+{ganadorDelDia.telefono}</strong></span>
-                  <span>📺 Servicios/Renovaciones: <strong className="text-amber-300">{ganadorDelDia.totalServicios} ({ganadorDelDia.serviciosList.join(', ')})</strong></span>
-                  <span>⏳ Antigüedad: <strong className="text-emerald-300">{ganadorDelDia.maxAntiguedadDias} días con nosotros</strong></span>
-                  <span>🎟️ Probabilidad Fiel: <strong className="text-indigo-300">{ganadorDelDia.scoreTotal} pts</strong></span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-300 font-medium">
+                <span>📱 WhatsApp: <strong className="text-white font-mono">+{ganadorDelDia.telefono}</strong></span>
+                <span>📺 Servicios/Renovaciones: <strong className="text-amber-300">{ganadorDelDia.totalServicios} ({ganadorDelDia.serviciosList.join(', ')})</strong></span>
+                <span>⏳ Antigüedad: <strong className="text-emerald-300">{ganadorDelDia.maxAntiguedadDias} días con nosotros</strong></span>
+                <span>🎟️ Probabilidad Fiel: <strong className="text-indigo-300">{ganadorDelDia.scoreTotal} pts</strong></span>
+              </div>
             </div>
 
             {/* BOTONES DE ACCIÓN RÁPIDA PARA ENGREÍR AL GANADOR */}
@@ -767,7 +749,7 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
                   handleGiveGift(ganadorDelDia.baseClient);
                   marcarComoEngreidoHoy(false);
                 }}
-                disabled={isSpinningWinner || freeEsetCount === 0}
+                disabled={freeEsetCount === 0}
                 className="px-4 py-3 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
                 title="Le envía una licencia ESET Mobile gratis y lo marca como engreído"
               >
@@ -780,7 +762,6 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
                   marcarComoEngreidoHoy(false);
                   setActiveTab('regalos_vip');
                 }}
-                disabled={isSpinningWinner}
                 className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
                 title="Ir al módulo de Regalos VIP HBO por 10 o 15 días"
               >
@@ -790,7 +771,6 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
               <button
                 type="button"
                 onClick={() => setWaActionModal(ganadorDelDia.baseClient)}
-                disabled={isSpinningWinner}
                 className="px-3.5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
                 title="Enviar oferta o descuento del catálogo"
               >
@@ -800,11 +780,10 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
               <button
                 type="button"
                 onClick={() => marcarComoEngreidoHoy(true)}
-                disabled={isSpinningWinner}
-                className="px-3.5 py-3 bg-white/10 hover:bg-white/20 text-amber-300 border border-white/15 font-bold rounded-2xl text-xs flex items-center transition-all"
-                title="Marca a este cliente como ya premiado en este ciclo y sortea al siguiente"
+                className="px-3.5 py-3 bg-white/10 hover:bg-white/20 text-amber-300 border border-white/15 font-bold rounded-2xl text-xs flex items-center transition-all active:scale-95"
+                title="Marca a este cliente como ya premiado en este ciclo y sortea al siguiente al instante"
               >
-                <RefreshCw className={`w-4 h-4 mr-1.5 ${isSpinningWinner ? 'animate-spin' : ''}`} /> Sortear Otro
+                <RefreshCw className="w-4 h-4 mr-1.5" /> Sortear Otro
               </button>
             </div>
           </div>
