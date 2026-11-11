@@ -2936,10 +2936,25 @@ export default function App() {
     if (sendWhatsApp) triggerWhatsAppAlert(finalClient, 'venta', tipoCuenta, clientesAGuardar);
   };
 
+  const getCleanServiceNameForMessage = (client) => {
+    const raw = String(client?.servicio || '').trim();
+    if (client?.categoria !== 'antivirus') return raw;
+    const lower = raw.toLowerCase();
+    if (lower.includes('mobile') || lower.includes('celular') || lower.includes('android')) return 'ESET Mobile Security';
+    if (lower.includes('eset') || lower.includes('nod32')) return 'ESET NOD32';
+    if (lower.includes('kaspersky')) return 'Kaspersky';
+    if (lower.includes('mcafee')) return 'McAfee';
+    if (lower.includes('norton')) return 'Norton';
+    if (lower.includes('bitdefender')) return 'Bitdefender';
+    if (lower.includes('avast')) return 'Avast';
+    return raw.replace(/\b(premium|standard|plus|total protection|internet security|file security)\b/gi, '').replace(/\s+/g, ' ').trim() || raw;
+  };
+
   const triggerWhatsAppAlert = (client, type, tipoCuenta, arrayClientesMultiples = null, customOfferOptions = null) => {
     let msg = ``;
     const isMaster = !!client.idMaster;
     const fechaVencimiento = formatDateToLocal(client.fechaVencimiento);
+    const nombreServicioMsg = getCleanServiceNameForMessage(client);
     const configSoft = plantillas.find(p => p.nombre && client.servicio && String(p.nombre).trim().toLowerCase() === String(client.servicio).trim().toLowerCase());
 
     if (type === 'ofrecer_catalogo' && customOfferOptions?.productObj) {
@@ -2963,14 +2978,14 @@ export default function App() {
       } else {
         const headerRandom = CABECERAS_ANTISPAM[Math.floor(Math.random() * CABECERAS_ANTISPAM.length)]
           .replace(/{nombre}/gi, client.nombre || 'Cliente')
-          .replace(/{producto}/gi, client.servicio || 'nuestro servicio')
+          .replace(/{producto}/gi, nombreServicioMsg || 'nuestro servicio')
           .replace(/{negocio}/gi, parametros.nombreNegocio);
         const footerRandom = CIERRES_ANTISPAM[Math.floor(Math.random() * CIERRES_ANTISPAM.length)];
         msg = `${headerRandom}\n\n${footerRandom}`;
       }
 
     } else if (type === 'venta') {
-      msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\nTu cuenta de *${client.servicio}* ha sido activada con éxito.\n\n`;
+      msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\nTu ${client.categoria === 'antivirus' ? 'licencia' : 'cuenta'} de *${nombreServicioMsg}* ha sido activada con éxito.\n\n`;
       
       if (client.categoria === 'software' && configSoft) {
         msg += `${configSoft.beneficios || ''}\n\n`;
@@ -2992,7 +3007,7 @@ export default function App() {
             msg += `3️⃣ Escribe o pega la Key de Activación que te hemos enviado.\n`;
             msg += `4️⃣ Continúa presionando "Siguiente" para finalizar y ¡listo! Disfruta de tu equipo totalmente protegido.\n`;
          } else {
-            msg += `Ingresa al sitio oficial de tu antivirus y utiliza la Key de Activación proporcionada para validar tu versión Premium.\n`;
+            msg += `Ingresa al aplicativo de tu antivirus *${nombreServicioMsg}* y utiliza la Key de Activación proporcionada para activar tu protección.\n`;
          }
       } else if (client.categoria === 'software') {
          msg += `👤 Correo de acceso: ${client.correoExterno}\n🔑 Contraseña: ${client.claveExterna}\n`;
@@ -3023,8 +3038,8 @@ export default function App() {
     else if (type === 'reenganche') {
       msg += `¡Hola ${client.nombre}! 👋\nTe escribimos de *${parametros.nombreNegocio}*.\n\n`;
       const opcionesReenganche = [
-        `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu cuenta de *${client.servicio}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte. 😊💙`,
-        `Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activa tu cuenta de *${client.servicio}*. Si deseas retomarla o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🚀`
+        `Hace un tiempo disfrutaste de nuestros servicios y queríamos pasar a saludarte. ✨\n\nSi en algún momento deseas volver a activar tu servicio de *${nombreServicioMsg}* o explorar otras plataformas profesionales y de entretenimiento, ¡avísanos!\n\nEstaremos muy felices de volver a atenderte. 😊💙`,
+        `Esperamos que te encuentres súper bien. 🌟\n\nNotamos que hace tiempo no tienes activo tu servicio de *${nombreServicioMsg}*. Si deseas retomarlo o probar alguna otra plataforma con nosotros, aquí seguimos a tu disposición. ¡Te extrañamos por ${parametros.nombreNegocio}! 🚀`
       ];
       msg += opcionesReenganche[Math.floor(Math.random() * opcionesReenganche.length)];
     }
@@ -3033,22 +3048,22 @@ export default function App() {
       let opcionesAlerta = [];
       if (client.categoria === 'software') {
          opcionesAlerta = [
-           `Pasábamos a recordarte amablemente que tu licencia profesional de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu cuenta para no perder acceso a tus herramientas de trabajo, escríbenos por aquí y lo gestionamos de inmediato. 💼😊`,
-           `¡Atención con tus herramientas! ⚙️ Tu cuenta de *${client.servicio}* se vence el *${fechaVencimiento}*.\n\nPara no interrumpir tus proyectos, confírmanos si gustas renovar y lo preparamos todo. ¡Saludos profesionales!`
+           `Pasábamos a recordarte amablemente que tu licencia profesional de *${nombreServicioMsg}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu cuenta para no perder acceso a tus herramientas de trabajo, escríbenos por aquí y lo gestionamos de inmediato. 💼😊`,
+           `¡Atención con tus herramientas! ⚙️ Tu cuenta de *${nombreServicioMsg}* se vence el *${fechaVencimiento}*.\n\nPara no interrumpir tus proyectos, confírmanos si gustas renovar y lo preparamos todo. ¡Saludos profesionales!`
          ];
       } else if (isMaster) {
          const accesoStr = `\n📺 Perfil: P${client.perfil}\n${client.pin ? (client.pin.includes('@') ? `📧 Invitación: ${client.pin}\n` : `🔐 PIN: ${client.pin}\n`) : ''}`;
          opcionesAlerta = [
-           `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nPara tu comodidad, te recordamos tu acceso:${accesoStr}\nSi deseas continuar disfrutando del servicio, con gusto te ayudamos. Estaremos felices de mantenerte con nosotros. 😊🍿`,
-           `¡Aviso de vencimiento! ⚠ Tu cuenta de *${client.servicio}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
+           `Pasábamos a recordarte amablemente que tu servicio de *${nombreServicioMsg}* culmina el *${fechaVencimiento}*.\n\nPara tu comodidad, te recordamos tu acceso:${accesoStr}\nSi deseas continuar disfrutando del servicio, con gusto te ayudamos. Estaremos felices de mantenerte con nosotros. 😊🍿`,
+           `¡Aviso de vencimiento! ⚠ Tu cuenta de *${nombreServicioMsg}* vence el *${fechaVencimiento}*.\n\nAquí tienes tus datos de acceso actuales:${accesoStr}\nPara no perder el acceso a tus perfiles, confírmanos por aquí si deseas renovar. ¡Gracias por elegirnos! 💙`
          ];
       } else if (client.categoria === 'antivirus') {
          opcionesAlerta = [
-           `Pasábamos a recordarte amablemente que tu licencia de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu licencia anual para mantener la seguridad de tu equipo, escríbenos por aquí y con gusto te ayudamos con la actualización. 🛡️😊`
+           `Pasábamos a recordarte amablemente que tu licencia de *${nombreServicioMsg}* culmina el *${fechaVencimiento}*.\n\nSi deseas renovar tu licencia para mantener la seguridad de tu equipo, escríbenos por aquí y con gusto te ayudamos con la actualización. 🛡️😊`
          ];
       } else {
          opcionesAlerta = [
-           `Pasábamos a recordarte amablemente que tu servicio de *${client.servicio}* culmina el *${fechaVencimiento}*.\n\nSi te gustaría continuar disfrutando del servicio, por favor avísanos por este medio y con mucho gusto te ayudamos a gestionarlo. 😊💙`
+           `Pasábamos a recordarte amablemente que tu servicio de *${nombreServicioMsg}* culmina el *${fechaVencimiento}*.\n\nSi te gustaría continuar disfrutando del servicio, por favor avísanos por este medio y con mucho gusto te ayudamos a gestionarlo. 😊💙`
          ];
       }
       msg += opcionesAlerta[Math.floor(Math.random() * opcionesAlerta.length)];
@@ -3101,7 +3116,7 @@ export default function App() {
 
     let msg = `¡Hola ${client.nombre}! 👋 Te escribimos de *${parametros.nombreNegocio}*.
 
-¡Queremos agradecerte por tu constante preferencia! 🎉 Como muestra de nuestro aprecio, te hemos obsequiado una licencia Premium de *ESET Mobile Security* exclusivamente para tu celular, totalmente GRATIS. 🎁
+¡Queremos agradecerte por tu constante preferencia! 🎉 Como muestra de nuestro aprecio, te hemos obsequiado una licencia de *ESET Mobile Security* exclusivamente para tu celular, totalmente GRATIS. 🎁
 
 *TUS DATOS DE ACTIVACIÓN:*
 🛡️ Key de Activación: *${llaveDisponible.llave}*
