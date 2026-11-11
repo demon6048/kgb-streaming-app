@@ -2830,6 +2830,22 @@ export default function App() {
 
   useEffect(() => { fetchDataFromSheets(); }, [fetchDataFromSheets]);
 
+  // Configura automáticamente el Favicon (Escudo KGB) y el título "KGB STREAMING" en la pestaña del navegador
+  useEffect(() => {
+    document.title = 'KGB STREAMING';
+    const iconRels = ['icon', 'shortcut icon', 'apple-touch-icon'];
+    iconRels.forEach((rel) => {
+      let link = document.querySelector(`link[rel="${rel}"]`);
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = rel;
+        document.head.appendChild(link);
+      }
+      link.type = 'image/png';
+      link.href = LOGO_URL;
+    });
+  }, []);
+
   const processedClients = useMemo(() => {
     return clientes.map(client => {
       const rawCat = String(client.categoria || '').trim().toLowerCase();
