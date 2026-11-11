@@ -508,7 +508,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
 // 4. VISTAS PRINCIPALES (MÓDULOS)
 // ==========================================
 const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = [], stockAV = [], handleGiveGift, setActiveTab, showToast }) => {
-  const [filtroAlertas, setFiltroAlertas] = useState('todas');
+  const [filtroAlertas, setFiltroAlertas] = useState('todas_base');
+  const [busquedaDashboard, setBusquedaDashboard] = useState('');
   const sorteoInicializadoRef = useRef(false);
   const [pamperedPhones, setPamperedPhones] = useState(() => {
     try {
@@ -518,46 +519,54 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       return [];
     }
   });
-  const [dailyWinnerPhone, setDailyWinnerPhone] = useState(() => {
+  const [dailyWinnerPhones, setDailyWinnerPhones] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('kgb_daily_winner_v1') || 'null');
+      const saved = JSON.parse(localStorage.getItem('kgb_daily_winners_v2') || 'null');
       const todayKey = getToday().toISOString().split('T')[0];
-      if (saved && saved.date === todayKey && saved.phone) return String(saved.phone).trim();
-      return null;
+      if (saved && saved.date === todayKey && Array.isArray(saved.phones) && saved.phones.length > 0) {
+        return saved.phones.map(p => String(p).trim());
+      }
+      return [];
     } catch (e) {
-      return null;
+      return [];
     }
   });
 
-  // 1. Calificación inteligente de todos los clientes (Antigüedad + Renovaciones/Servicios)
+  // 1. Calificación inteligente de TODOS los clientes: Streaming + Antivirus + Software Profesional
   const clientesCalificados = useMemo(() => {
     const map = new Map();
     const today = getToday();
 
     processedClients.forEach(c => {
-      const phoneKey = String(c.telefono || '').trim();
-      if (!phoneKey || !c.nombre) return;
+      const nombreLimpio = String(c.nombre || '').trim();
+      if (!nombreLimpio) return;
+      const phoneRaw = String(c.telefono || '').trim();
+      const uniqueKey = phoneRaw || `NOMBRE_${nombreLimpio.toLowerCase()}`;
 
       const inicioDate = parseDateString(c.fechaInicio) || today;
       const diffDays = Math.ceil((today - inicioDate) / (1000 * 60 * 60 * 24));
       const diasAntiguedad = Number.isFinite(diffDays) ? Math.max(1, diffDays) : 1;
       const esRegaloPrevio = String(c.servicio || '').includes('Regalo') || String(c.detallesLicencia || '').includes('Regalo') || String(c.detallesLicencia || '').includes('Enganche');
+      const catActual = String(c.categoria || 'streaming').toLowerCase();
 
-      if (!map.has(phoneKey)) {
-        map.set(phoneKey, {
+      if (!map.has(uniqueKey)) {
+        map.set(uniqueKey, {
+          uniqueKey,
           baseClient: c,
-          nombre: c.nombre,
-          telefono: phoneKey,
+          nombre: nombreLimpio,
+          telefono: phoneRaw,
           serviciosList: [c.servicio],
+          categoriasList: [catActual],
           totalServicios: 1,
           activosCount: c.daysRemaining >= 0 ? 1 : 0,
           maxAntiguedadDias: diasAntiguedad,
           recibioRegaloEnBD: esRegaloPrevio
         });
       } else {
-        const entry = map.get(phoneKey);
+        const entry = map.get(uniqueKey);
         entry.totalServicios += 1;
-        if (!entry.serviciosList.includes(c.servicio)) entry.serviciosList.push(c.servicio);
+        if (c.servicio && !entry.serviciosList.includes(c.servicio)) entry.serviciosList.push(c.servicio);
+        if (!entry.categoriasList.includes(catActual)) entry.categoriasList.push(catActual);
         if (c.daysRemaining >= 0) entry.activosCount += 1;
         if (diasAntiguedad > entry.maxAntiguedadDias) entry.maxAntiguedadDias = diasAntiguedad;
         if (esRegaloPrevio) entry.recibioRegaloEnBD = true;
@@ -569,7 +578,9 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       const puntosPorServicios = item.totalServicios * 25;
       const puntosPorAntiguedad = Math.min(120, Math.floor(item.maxAntiguedadDias / 3) * 2);
       const puntosPorActivo = item.activosCount > 0 ? 20 : 0;
-      const scoreTotal = Math.max(1, (puntosBase + puntosPorServicios + puntosPorAntiguedad + puntosPorActivo) || 15);
+      // Bono adicional si compran Antivirus o Software Profesional para que siempre entren con fuerza al sorteo
+      const bonoEspecialidad = (item.categoriasList.includes('antivirus') || item.categoriasList.includes('software')) ? 20 : 0;
+      const scoreTotal = Math.max(1, (puntosBase + puntosPorServicios + puntosPorAntiguedad + puntosPorActivo + bonoEspecialidad) || 15);
 
       let estrellas = 3;
       let nivelTexto = 'Cliente Constante';
@@ -593,85 +604,168 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     });
   }, [processedClients]);
 
-  // Función de sorteo directo sin bucles de intervalos
-  const realizarSorteoInteligente = useCallback((forzarManual = false, listaExcluidosCustom = null) => {
+  // Función auxiliar para elegir 1 ganador ponderado de una piscina de candidatos
+  const pickOneWeighted = (pool) => {
+    if (!pool || pool.length === 0) return null;
+    const totalTickets = pool.reduce((acc, c) => acc + (Number.isFinite(c.scoreTotal) ? c.scoreTotal : 15), 0);
+    let randomTicket = Math.random() * totalTickets;
+    for (const cand of pool) {
+      randomTicket -= (Number.isFinite(cand.scoreTotal) ? cand.scoreTotal : 15);
+      if (randomTicket <= 0) return cand;
+    }
+    return pool[0];
+  };
+
+  // Sorteo directo de 3 GANADORES DEL DÍA (1er, 2do y 3er Lugar) sin bucles
+  const realizarSorteoTresLugares = useCallback((forzarManual = false, listaExcluidosCustom = null) => {
     if (clientesCalificados.length === 0) return;
 
+    const targetCount = Math.min(3, clientesCalificados.length);
     const excluidos = listaExcluidosCustom !== null ? listaExcluidosCustom : pamperedPhones;
-    let candidatos = clientesCalificados.filter(c => !excluidos.includes(c.telefono));
+    let candidatos = clientesCalificados.filter(c => !excluidos.includes(c.uniqueKey));
 
-    // Si ya engreímos a todos los clientes de la base de datos, reiniciamos el ciclo limpiamente
-    if (candidatos.length === 0) {
+    // Si quedan menos de 3 candidatos para completar el podio, reiniciamos el ciclo
+    if (candidatos.length < targetCount) {
       candidatos = [...clientesCalificados];
       setPamperedPhones([]);
       localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify([]));
     }
 
-    // Evitar repetir exactamente el mismo si se presiona "Sortear otro" y hay más de 1 candidato
-    if (forzarManual && candidatos.length > 1 && dailyWinnerPhone) {
-      const sinActual = candidatos.filter(c => c.telefono !== dailyWinnerPhone);
-      if (sinActual.length > 0) candidatos = sinActual;
+    if (forzarManual && candidatos.length > targetCount && dailyWinnerPhones.length > 0) {
+      const sinActuales = candidatos.filter(c => !dailyWinnerPhones.includes(c.uniqueKey));
+      if (sinActuales.length >= targetCount) candidatos = sinActuales;
     }
 
-    const totalTickets = candidatos.reduce((acc, c) => acc + (Number.isFinite(c.scoreTotal) ? c.scoreTotal : 15), 0);
-    let randomTicket = Math.random() * totalTickets;
-    let elegido = candidatos[0];
+    const seleccionados = [];
+    let poolRestante = [...candidatos];
 
-    for (const cand of candidatos) {
-      randomTicket -= (Number.isFinite(cand.scoreTotal) ? cand.scoreTotal : 15);
-      if (randomTicket <= 0) {
-        elegido = cand;
-        break;
+    for (let i = 0; i < targetCount; i++) {
+      if (poolRestante.length === 0) {
+        poolRestante = clientesCalificados.filter(c => !seleccionados.some(s => s.uniqueKey === c.uniqueKey));
+      }
+      const elegido = pickOneWeighted(poolRestante);
+      if (elegido) {
+        seleccionados.push(elegido);
+        poolRestante = poolRestante.filter(c => c.uniqueKey !== elegido.uniqueKey);
       }
     }
 
-    if (!elegido) elegido = candidatos[0];
-    if (!elegido) return;
-
+    const nuevosIds = seleccionados.map(s => s.uniqueKey);
     const todayKey = getToday().toISOString().split('T')[0];
-    setDailyWinnerPhone(elegido.telefono);
-    localStorage.setItem('kgb_daily_winner_v1', JSON.stringify({ date: todayKey, phone: elegido.telefono }));
-  }, [clientesCalificados, pamperedPhones, dailyWinnerPhone]);
+    setDailyWinnerPhones(nuevosIds);
+    localStorage.setItem('kgb_daily_winners_v2', JSON.stringify({ date: todayKey, phones: nuevosIds }));
+  }, [clientesCalificados, pamperedPhones, dailyWinnerPhones]);
 
-  // Seleccionar automáticamente al ganador del día una sola vez al cargar los clientes
+  // Reemplazar solo 1 puesto específico (1er, 2do o 3er lugar)
+  const sortearUnSoloLugar = (indexLugar) => {
+    if (clientesCalificados.length === 0) return;
+    const ocupadosHoy = dailyWinnerPhones;
+    let pool = clientesCalificados.filter(c => !ocupadosHoy.includes(c.uniqueKey) && !pamperedPhones.includes(c.uniqueKey));
+    if (pool.length === 0) {
+      pool = clientesCalificados.filter(c => !ocupadosHoy.includes(c.uniqueKey));
+    }
+    if (pool.length === 0) pool = [...clientesCalificados];
+
+    const nuevoElegido = pickOneWeighted(pool);
+    if (!nuevoElegido) return;
+
+    const nuevaLista = [...dailyWinnerPhones];
+    nuevaLista[indexLugar] = nuevoElegido.uniqueKey;
+    const todayKey = getToday().toISOString().split('T')[0];
+    setDailyWinnerPhones(nuevaLista);
+    localStorage.setItem('kgb_daily_winners_v2', JSON.stringify({ date: todayKey, phones: nuevaLista }));
+  };
+
+  // Inicializar automáticamente los 3 ganadores del día al abrir la app
   useEffect(() => {
     if (clientesCalificados.length > 0 && !sorteoInicializadoRef.current) {
       sorteoInicializadoRef.current = true;
-      const existeActual = dailyWinnerPhone && clientesCalificados.some(c => c.telefono === dailyWinnerPhone);
-      if (!existeActual) {
-        realizarSorteoInteligente(false);
+      const targetCount = Math.min(3, clientesCalificados.length);
+      const validos = dailyWinnerPhones.filter(id => clientesCalificados.some(c => c.uniqueKey === id));
+      if (validos.length < targetCount) {
+        realizarSorteoTresLugares(false);
       }
     }
-  }, [clientesCalificados, dailyWinnerPhone, realizarSorteoInteligente]);
+  }, [clientesCalificados, dailyWinnerPhones, realizarSorteoTresLugares]);
 
-  const ganadorDelDia = useMemo(() => {
-    if (clientesCalificados.length === 0) return null;
-    return clientesCalificados.find(c => c.telefono === dailyWinnerPhone) || clientesCalificados[0];
-  }, [clientesCalificados, dailyWinnerPhone]);
+  const ganadoresDelDia = useMemo(() => {
+    if (clientesCalificados.length === 0) return [];
+    const encontrados = dailyWinnerPhones
+      .map(id => clientesCalificados.find(c => c.uniqueKey === id))
+      .filter(Boolean);
+    if (encontrados.length > 0) return encontrados.slice(0, 3);
+    return clientesCalificados.slice(0, Math.min(3, clientesCalificados.length));
+  }, [clientesCalificados, dailyWinnerPhones]);
 
-  const marcarComoEngreidoHoy = (pasarAlSiguiente = false) => {
-    if (!ganadorDelDia) return;
-    const nuevosEngreidos = Array.from(new Set([...pamperedPhones, ganadorDelDia.telefono]));
+  const marcarGanadorComoEngreido = (ganadorObj, cambiarPuestoIdx = null) => {
+    if (!ganadorObj) return;
+    const nuevosEngreidos = Array.from(new Set([...pamperedPhones, ganadorObj.uniqueKey]));
     setPamperedPhones(nuevosEngreidos);
     localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify(nuevosEngreidos));
-    if (pasarAlSiguiente) {
-      realizarSorteoInteligente(true, nuevosEngreidos);
+    if (cambiarPuestoIdx !== null) {
+      sortearUnSoloLugar(cambiarPuestoIdx);
     } else if (showToast) {
-      showToast(`¡${ganadorDelDia.nombre} marcado como engreído en este ciclo!`);
+      showToast(`¡${ganadorObj.nombre} marcado como premiado en este ciclo!`);
     }
   };
 
-  const yaFueEngreidoEnCiclo = ganadorDelDia && pamperedPhones.includes(ganadorDelDia.telefono);
   const freeEsetCount = stockAV.filter(k => k.producto && k.producto.includes('ESET') && k.estado === 'Disponible').length;
 
-  const alertasFiltradas = urgentClients.filter(c => {
-    if (filtroAlertas === 'propias') return c.categoria === 'streaming' && c.idMaster && c.daysRemaining >= 0;
-    if (filtroAlertas === 'externas') return c.categoria === 'streaming' && !c.idMaster && c.daysRemaining >= 0;
-    if (filtroAlertas === 'antivirus') return c.categoria === 'antivirus';
-    if (filtroAlertas === 'software') return c.categoria === 'software';
-    if (filtroAlertas === 'inactivos') return c.daysRemaining < 0;
-    return true;
-  });
+  // Filtro inteligente en el Panel de Control: permite ver TODOS los clientes (incluyendo Antivirus de 1 año como Julio) o solo Alertas
+  const listaDashboard = useMemo(() => {
+    const term = busquedaDashboard.trim().toLowerCase();
+
+    // Si el usuario escribe en el buscador (ej. "Julio"), buscamos en TODA la base de datos unificada
+    const fuenteBase = term
+      ? processedClients
+      : filtroAlertas === 'alertas'
+      ? urgentClients
+      : processedClients;
+
+    return fuenteBase
+      .filter(c => {
+        if (term) {
+          const matchNombre = String(c.nombre || '').toLowerCase().includes(term);
+          const matchTel = String(c.telefono || '').includes(term);
+          const matchServ = String(c.servicio || '').toLowerCase().includes(term);
+          const matchKey = String(c.proveedorKey || '').toLowerCase().includes(term);
+          const matchDetalles = String(c.detallesLicencia || '').toLowerCase().includes(term);
+          if (!matchNombre && !matchTel && !matchServ && !matchKey && !matchDetalles) return false;
+        }
+
+        if (filtroAlertas === 'propias') return c.categoria === 'streaming' && c.idMaster && c.daysRemaining >= 0;
+        if (filtroAlertas === 'externas') return c.categoria === 'streaming' && !c.idMaster && c.daysRemaining >= 0;
+        if (filtroAlertas === 'antivirus') return c.categoria === 'antivirus';
+        if (filtroAlertas === 'software') return c.categoria === 'software';
+        if (filtroAlertas === 'inactivos') return c.daysRemaining < 0;
+        return true;
+      })
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
+  }, [processedClients, urgentClients, filtroAlertas, busquedaDashboard]);
+
+  const podiumConfig = [
+    {
+      lugar: '🥇 1ER LUGAR',
+      subtitulo: 'Premio Mayor VIP',
+      borderClass: 'border-amber-400/60 shadow-[0_0_25px_rgba(251,191,36,0.2)]',
+      badgeClass: 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950',
+      glowClass: 'bg-amber-400/15'
+    },
+    {
+      lugar: '🥈 2DO LUGAR',
+      subtitulo: 'Segundo Ganador',
+      borderClass: 'border-cyan-400/50 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
+      badgeClass: 'bg-gradient-to-r from-cyan-300 to-blue-400 text-slate-950',
+      glowClass: 'bg-cyan-400/15'
+    },
+    {
+      lugar: '🥉 3ER LUGAR',
+      subtitulo: 'Tercer Ganador',
+      borderClass: 'border-fuchsia-400/50 shadow-[0_0_20px_rgba(217,70,239,0.15)]',
+      badgeClass: 'bg-gradient-to-r from-fuchsia-400 to-pink-500 text-white',
+      glowClass: 'bg-fuchsia-500/15'
+    }
+  ];
 
   return (
     <div className="space-y-6 animate-fadeIn relative">
@@ -686,7 +780,7 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
           <KgbNeonLogo size="lg" showText={false} />
           <div className="min-w-0">
             <h1 className="text-xl sm:text-3xl font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-fuchsia-600 bg-clip-text text-transparent truncate">Panel de Control KGB</h1>
-            <p className="text-slate-500 mt-0.5 text-xs sm:text-sm font-medium">Resumen general y alertas operativas sincronizadas.</p>
+            <p className="text-slate-500 mt-0.5 text-xs sm:text-sm font-medium">Base unificada: Streaming + Antivirus + Software Profesional ({processedClients.length} registros).</p>
           </div>
         </div>
         <a
@@ -700,140 +794,244 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       </div>
 
       {/* ========================================== */}
-      {/* CEREZA DEL PASTEL: SORTEO INTELIGENTE DEL DÍA (100% INTERNO) */}
+      {/* PODIO DE 3 GANADORES DEL DÍA (1ER, 2DO Y 3ER LUGAR - STREAMING, ANTIVIRUS Y SOFTWARE) */}
       {/* ========================================== */}
-      {ganadorDelDia && (
-        <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40">
+      {ganadoresDelDia.length > 0 && (
+        <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40 space-y-5">
           <div className="absolute -left-16 -top-16 w-48 h-48 sm:w-64 sm:h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute -right-16 -bottom-16 w-48 h-48 sm:w-64 sm:h-64 bg-fuchsia-600/25 rounded-full blur-3xl pointer-events-none"></div>
-          {/* Sello de agua del escudo KGB transparente dentro de la tarjeta de sorteo */}
           <img
             src={LOGO_URL}
             alt=""
             referrerPolicy="no-referrer"
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-36 h-36 sm:w-52 sm:h-52 object-contain opacity-[0.08] pointer-events-none select-none"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-36 h-36 sm:w-56 sm:h-56 object-contain opacity-[0.06] pointer-events-none select-none"
           />
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative z-10">
-            <div className="space-y-2.5 flex-1 min-w-0">
+
+          {/* Cabecera del Sorteo Triple */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-10 border-b border-white/10 pb-4">
+            <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-cyan-500/25 to-fuchsia-500/25 border border-cyan-400/50 text-cyan-300 text-xs font-black uppercase tracking-wider flex items-center shadow-[0_0_12px_rgba(0,240,255,0.25)]">
-                  <Gift className="w-3.5 h-3.5 mr-1.5 text-fuchsia-400" /> Sorteo Interno KGB • Cliente a Engreír Hoy
+                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-400/25 via-cyan-500/25 to-fuchsia-500/25 border border-amber-400/50 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center">
+                  <Gift className="w-3.5 h-3.5 mr-1.5 text-amber-400" /> Podio Diario KGB • 3 Ganadores del Día
                 </span>
                 <span className="px-2.5 py-1 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/30 text-fuchsia-200 text-xs font-bold">
-                  Ciclo Total: {Math.min(pamperedPhones.length, clientesCalificados.length)} / {clientesCalificados.length} clientes premiados
+                  Premiados en el ciclo: {Math.min(pamperedPhones.length, clientesCalificados.length)} / {clientesCalificados.length} clientes
                 </span>
-                {yaFueEngreidoEnCiclo && (
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black flex items-center">
-                    <Check className="w-3.5 h-3.5 mr-1" /> ¡Ya engreído hoy!
-                  </span>
-                )}
               </div>
+              <p className="text-xs text-slate-300">
+                Participan automáticamente tus compradores de <strong className="text-cyan-300">Streaming</strong>, <strong className="text-fuchsia-300">Antivirus</strong> y <strong className="text-emerald-300">Software Profesional</strong>.
+              </p>
+            </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white truncate">
-                  {ganadorDelDia.nombre}
-                </h2>
-                <div className="flex items-center space-x-1 bg-white/10 px-3 py-1 rounded-xl w-fit flex-shrink-0">
-                  {Array.from({ length: 5 }).map((_, idx) => (
-                    <Star
-                      key={idx}
-                      className={`w-4 h-4 ${idx < ganadorDelDia.estrellas ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`}
-                    />
-                  ))}
-                  <span className="text-xs font-bold text-amber-200 ml-1.5">{ganadorDelDia.nivelTexto}</span>
+            <button
+              type="button"
+              onClick={() => {
+                ganadoresDelDia.forEach(g => {
+                  if (!pamperedPhones.includes(g.uniqueKey)) {
+                    pamperedPhones.push(g.uniqueKey);
+                  }
+                });
+                const actualizados = Array.from(new Set(pamperedPhones));
+                setPamperedPhones(actualizados);
+                localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify(actualizados));
+                realizarSorteoTresLugares(true, actualizados);
+              }}
+              className="px-4 py-2.5 bg-gradient-to-r from-cyan-500/20 to-fuchsia-500/20 hover:from-cyan-500/30 hover:to-fuchsia-500/30 text-cyan-200 border border-cyan-400/40 font-black rounded-2xl text-xs flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
+            >
+              <RefreshCw className="w-4 h-4 mr-2 text-amber-300" /> Sortear Nuevos 3 Ganadores
+            </button>
+          </div>
+
+          {/* Tarjetas de 1er, 2do y 3er Lugar */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 relative z-10">
+            {ganadoresDelDia.map((ganador, idx) => {
+              const cfg = podiumConfig[idx] || podiumConfig[2];
+              const yaPremiado = pamperedPhones.includes(ganador.uniqueKey);
+              return (
+                <div
+                  key={ganador.uniqueKey}
+                  className={`rounded-2xl bg-[#0b0d24]/90 border-2 ${cfg.borderClass} p-4 flex flex-col justify-between space-y-4 relative overflow-hidden`}
+                >
+                  <div className={`absolute -right-10 -top-10 w-28 h-28 ${cfg.glowClass} rounded-full blur-2xl pointer-events-none`}></div>
+
+                  <div className="space-y-2.5 relative z-10">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow ${cfg.badgeClass}`}>
+                        {cfg.lugar}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {yaPremiado && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-black flex items-center">
+                            <Check className="w-3 h-3 mr-0.5" /> Premiado
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => marcarGanadorComoEngreido(ganador, idx)}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-bold flex items-center"
+                          title="Cambiar solo este ganador"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" /> Otro
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-black text-white truncate" title={ganador.nombre}>
+                        {ganador.nombre}
+                      </h3>
+                      <div className="flex items-center space-x-1 mt-1">
+                        {Array.from({ length: 5 }).map((_, sIdx) => (
+                          <Star
+                            key={sIdx}
+                            className={`w-3.5 h-3.5 ${sIdx < ganador.estrellas ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`}
+                          />
+                        ))}
+                        <span className="text-[11px] font-bold text-amber-200 ml-1">{ganador.nivelTexto}</span>
+                      </div>
+                    </div>
+
+                    {/* Etiquetas de Categorías del Ganador (Streaming, Antivirus, Software) */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {ganador.categoriasList.map(cat => (
+                        <span
+                          key={cat}
+                          className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            cat === 'antivirus'
+                              ? 'bg-purple-500/25 text-purple-200 border border-purple-400/40'
+                              : cat === 'software'
+                              ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40'
+                              : 'bg-blue-500/25 text-blue-200 border border-blue-400/40'
+                          }`}
+                        >
+                          {cat === 'antivirus' ? '🛡️ Antivirus' : cat === 'software' ? '💼 Software' : '📺 Streaming'}
+                        </span>
+                      ))}
+                      <span className="px-2 py-0.5 rounded bg-white/10 text-amber-300 text-[10px] font-bold">
+                        🎟️ {ganador.scoreTotal} pts
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-300 space-y-1 bg-black/25 p-2.5 rounded-xl border border-white/5">
+                      <div className="truncate">📦 <strong className="text-white">{ganador.serviciosList.join(', ')}</strong></div>
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>📱 {ganador.telefono ? `+${ganador.telefono}` : 'Sin número'}</span>
+                        <span className="text-emerald-300 font-bold">⏳ {ganador.maxAntiguedadDias}d</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botones de Premio para cada lugar */}
+                  <div className="grid grid-cols-3 gap-1.5 pt-1 relative z-10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        marcarGanadorComoEngreido(ganador, null);
+                        setActiveTab('regalos_vip');
+                      }}
+                      className="py-2 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-[11px] flex items-center justify-center shadow"
+                      title="Regalar cuenta Streaming / HBO VIP"
+                    >
+                      <Gift className="w-3.5 h-3.5 mr-1 flex-shrink-0" /> Streaming
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleGiveGift(ganador.baseClient);
+                        marcarGanadorComoEngreido(ganador, null);
+                      }}
+                      disabled={freeEsetCount === 0}
+                      className="py-2 px-2 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 text-white font-black rounded-xl text-[11px] flex items-center justify-center shadow"
+                      title="Regalar licencia ESET Mobile"
+                    >
+                      <Key className="w-3.5 h-3.5 mr-1 flex-shrink-0" /> ESET ({freeEsetCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWaActionModal(ganador.baseClient)}
+                      className="py-2 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-[11px] flex items-center justify-center shadow"
+                      title="Enviar mensaje u oferta por WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 mr-1 flex-shrink-0" /> Premio WA
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-300 font-medium">
-                <span>📱 WhatsApp: <strong className="text-white font-mono">+{ganadorDelDia.telefono}</strong></span>
-                <span>📺 Servicios/Renovaciones: <strong className="text-amber-300">{ganadorDelDia.totalServicios} ({ganadorDelDia.serviciosList.join(', ')})</strong></span>
-                <span>⏳ Antigüedad: <strong className="text-emerald-300">{ganadorDelDia.maxAntiguedadDias} días con nosotros</strong></span>
-                <span>🎟️ Probabilidad Fiel: <strong className="text-indigo-300">{ganadorDelDia.scoreTotal} pts</strong></span>
-              </div>
-            </div>
-
-            {/* BOTONES DE ACCIÓN RÁPIDA PARA ENGREÍR AL GANADOR */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  handleGiveGift(ganadorDelDia.baseClient);
-                  marcarComoEngreidoHoy(false);
-                }}
-                disabled={freeEsetCount === 0}
-                className="px-4 py-3 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
-                title="Le envía una licencia ESET Mobile gratis y lo marca como engreído"
-              >
-                <Key className="w-4 h-4 mr-1.5" /> Regalar ESET ({freeEsetCount})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  marcarComoEngreidoHoy(false);
-                  setActiveTab('regalos_vip');
-                }}
-                className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
-                title="Ir al módulo de Regalos VIP HBO por 10 o 15 días"
-              >
-                <Gift className="w-4 h-4 mr-1.5" /> Regalar HBO VIP
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setWaActionModal(ganadorDelDia.baseClient)}
-                className="px-3.5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center transition-all"
-                title="Enviar oferta o descuento del catálogo"
-              >
-                <MessageCircle className="w-4 h-4 mr-1.5" /> Oferta
-              </button>
-
-              <button
-                type="button"
-                onClick={() => marcarComoEngreidoHoy(true)}
-                className="px-3.5 py-3 bg-white/10 hover:bg-white/20 text-amber-300 border border-white/15 font-bold rounded-2xl text-xs flex items-center transition-all active:scale-95"
-                title="Marca a este cliente como ya premiado en este ciclo y sortea al siguiente al instante"
-              >
-                <RefreshCw className="w-4 h-4 mr-1.5" /> Sortear Otro
-              </button>
-            </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-cyan-500/25 shadow-[0_4px_20px_rgba(0,240,255,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Cuentas Propias</div> <div className="text-2xl sm:text-3xl font-black text-cyan-600">{stats.streamingPropios}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center"><MonitorPlay className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-500" /></div></div>
-        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-blue-500/25 shadow-[0_4px_20px_rgba(59,130,246,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Cuentas Externas</div> <div className="text-2xl sm:text-3xl font-black text-blue-600">{stats.streamingExternos}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center"><Cloud className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" /></div></div>
-        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-fuchsia-500/25 shadow-[0_4px_20px_rgba(217,70,239,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Stock Antivirus</div> <div className="text-2xl sm:text-3xl font-black text-fuchsia-600">{stats.llavesDisponibles}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-fuchsia-50 border border-fuchsia-200 flex items-center justify-center"><Key className="w-5 h-5 sm:w-6 sm:h-6 text-fuchsia-500" /></div></div>
-        <div className="p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-purple-500/25 shadow-[0_4px_20px_rgba(168,85,247,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs sm:text-sm font-bold mb-1 truncate">Clientes Software</div> <div className="text-2xl sm:text-3xl font-black text-purple-600">{stats.software}</div> </div><div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center"><Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" /></div></div>
+      {/* 5 TARJETAS DE RESUMEN (INCLUYE CLIENTES ANTIVIRUS Y SOFTWARE) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div onClick={() => setFiltroAlertas('propias')} className="cursor-pointer p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-cyan-500/25 hover:border-cyan-500 shadow-[0_4px_20px_rgba(0,240,255,0.08)] flex items-center justify-between min-w-0 transition-all"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs font-bold mb-1 truncate">Streaming Propio</div> <div className="text-2xl font-black text-cyan-600">{stats.streamingPropios}</div> </div><div className="w-10 h-10 flex-shrink-0 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center"><MonitorPlay className="w-5 h-5 text-cyan-500" /></div></div>
+        <div onClick={() => setFiltroAlertas('externas')} className="cursor-pointer p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-blue-500/25 hover:border-blue-500 shadow-[0_4px_20px_rgba(59,130,246,0.08)] flex items-center justify-between min-w-0 transition-all"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs font-bold mb-1 truncate">Streaming Externo</div> <div className="text-2xl font-black text-blue-600">{stats.streamingExternos}</div> </div><div className="w-10 h-10 flex-shrink-0 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center"><Cloud className="w-5 h-5 text-blue-500" /></div></div>
+        <div onClick={() => setFiltroAlertas('antivirus')} className="cursor-pointer p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-purple-500/30 hover:border-purple-600 shadow-[0_4px_20px_rgba(168,85,247,0.1)] flex items-center justify-between min-w-0 transition-all"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs font-bold mb-1 truncate">Clientes Antivirus</div> <div className="text-2xl font-black text-purple-600">{stats.antivirus}</div> </div><div className="w-10 h-10 flex-shrink-0 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center"><ShieldCheck className="w-5 h-5 text-purple-600" /></div></div>
+        <div onClick={() => setFiltroAlertas('software')} className="cursor-pointer p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-indigo-500/25 hover:border-indigo-500 shadow-[0_4px_20px_rgba(99,102,241,0.08)] flex items-center justify-between min-w-0 transition-all"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs font-bold mb-1 truncate">Clientes Software</div> <div className="text-2xl font-black text-indigo-600">{stats.software}</div> </div><div className="w-10 h-10 flex-shrink-0 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center"><Briefcase className="w-5 h-5 text-indigo-500" /></div></div>
+        <div className="col-span-2 sm:col-span-1 p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-fuchsia-500/25 shadow-[0_4px_20px_rgba(217,70,239,0.08)] flex items-center justify-between min-w-0"><div className="flex-1 min-w-0 pr-2"> <div className="text-slate-500 text-xs font-bold mb-1 truncate">Stock Llaves AV</div> <div className="text-2xl font-black text-fuchsia-600">{stats.llavesDisponibles}</div> </div><div className="w-10 h-10 flex-shrink-0 rounded-2xl bg-fuchsia-50 border border-fuchsia-200 flex items-center justify-center"><Key className="w-5 h-5 text-fuchsia-500" /></div></div>
       </div>
       
+      {/* DIRECTORIO CENTRAL UNIFICADO Y ALERTAS DEL PANEL DE CONTROL */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center"><AlertTriangle className="w-5 h-5 mr-2 text-orange-500"/> Alertas de Vencimientos</h2>
+        <div className="p-5 sm:p-6 border-b border-slate-100 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2 text-orange-500"/> Control General de Clientes y Vencimientos ({listaDashboard.length})
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Incluye todos tus clientes de Streaming, Antivirus (1 año / mensual) y Software Profesional.
+              </p>
+            </div>
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar a Julio, teléfono, KEY o servicio..."
+                className="w-full pl-10 pr-8 py-2 border-2 border-slate-200 rounded-xl text-xs font-bold focus:border-cyan-500 outline-none"
+                value={busquedaDashboard}
+                onChange={(e) => setBusquedaDashboard(e.target.value)}
+              />
+              {busquedaDashboard && (
+                <button
+                  onClick={() => setBusquedaDashboard('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setFiltroAlertas('todas')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'todas' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Todas</button>
-            <button onClick={() => setFiltroAlertas('propias')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'propias' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>Streaming Propio</button>
-            <button onClick={() => setFiltroAlertas('antivirus')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'antivirus' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>Antivirus</button>
-            <button onClick={() => setFiltroAlertas('software')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'software' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>Software</button>
-            <button onClick={() => setFiltroAlertas('inactivos')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filtroAlertas === 'inactivos' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 border-slate-300'}`}>Olvidados</button>
+            <button onClick={() => setFiltroAlertas('todas_base')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'todas_base' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>🌐 Todos ({processedClients.length})</button>
+            <button onClick={() => setFiltroAlertas('alertas')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'alertas' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100'}`}>🔔 Por Vencer ({urgentClients.length})</button>
+            <button onClick={() => setFiltroAlertas('propias')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'propias' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>📺 Streaming Propio ({stats.streamingPropios})</button>
+            <button onClick={() => setFiltroAlertas('antivirus')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'antivirus' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>🛡️ Antivirus ({stats.antivirus})</button>
+            <button onClick={() => setFiltroAlertas('software')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${filtroAlertas === 'software' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}>💼 Software ({stats.software})</button>
+            <button onClick={() => setFiltroAlertas('inactivos')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filtroAlertas === 'inactivos' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 border-slate-300'}`}>⏳ Olvidados ({stats.inactivos})</button>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[540px] overflow-y-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50/50 text-slate-500 font-bold text-xs uppercase">
-              <tr><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Servicio</th><th className="px-6 py-4">Vencimiento</th><th className="px-6 py-4 text-right">Acciones</th></tr>
+            <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase sticky top-0 z-10">
+              <tr><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Servicio / Categoría</th><th className="px-6 py-4">Vencimiento</th><th className="px-6 py-4 text-right">Acciones</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {alertasFiltradas.map(client => (
+              {listaDashboard.map(client => (
                 <tr key={client.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4"><div className="font-bold text-slate-800">{client.nombre}</div><div className="text-xs text-slate-500 flex items-center mt-0.5">+{client.telefono}</div></td>
-                  <td className="px-6 py-4"><div className="font-bold text-slate-700">{client.servicio}</div><div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">{client.categoria === 'antivirus' ? '🛡️ Antivirus' : client.categoria === 'software' ? '💼 Software' : client.idMaster ? '📺 Máster Propia' : '☁️ Externo'}</div></td>
-                  <td className="px-6 py-4"><div className="font-medium text-slate-700">{formatDateToLocal(client.fechaVencimiento)}</div><span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${client.statusInfo.color}`}>{client.statusInfo.text}</span></td>
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-700">{client.servicio}</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">
+                      {client.categoria === 'antivirus' ? `🛡️ Antivirus ${client.proveedorKey ? `• ${client.proveedorKey}` : ''}` : client.categoria === 'software' ? '💼 Software Profesional' : client.idMaster ? '📺 Máster Propia' : '☁️ Externo'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4"><div className="font-medium text-slate-700">{formatDateToLocal(client.fechaVencimiento)}</div><span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${client.statusInfo.color}`}>{client.statusInfo.text} ({client.daysRemaining}d)</span></td>
                   <td className="px-6 py-4 text-right"><button onClick={() => setWaActionModal(client)} className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"><MessageCircle className="w-4 h-4" /></button></td>
                 </tr>
               ))}
-              {alertasFiltradas.length === 0 && <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-400 font-medium">No hay alertas para esta categoría.</td></tr>}
+              {listaDashboard.length === 0 && <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-400 font-medium">No se encontraron clientes para este filtro o búsqueda.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -908,15 +1106,46 @@ const SoftwareList = ({ processedClients, setWaActionModal, setEditingClient, se
 
 const AntivirusList = ({ processedClients, setWaActionModal, setEditingClient, setInitialCategory, setIsClientModalOpen, handleDeleteClient }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const filteredClients = processedClients.filter(c => c.categoria === 'antivirus' && (c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || c.proveedorKey?.toLowerCase().includes(searchTerm.toLowerCase()))).sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
+  const [ordenAV, setOrdenAV] = useState('recientes'); // 'recientes' | 'vencimiento'
+
+  const filteredClients = processedClients
+    .filter(c => {
+      if (c.categoria !== 'antivirus') return false;
+      if (!searchTerm.trim()) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        String(c.nombre || '').toLowerCase().includes(term) ||
+        String(c.telefono || '').includes(term) ||
+        String(c.proveedorKey || '').toLowerCase().includes(term) ||
+        String(c.detallesLicencia || '').toLowerCase().includes(term) ||
+        String(c.servicio || '').toLowerCase().includes(term)
+      );
+    })
+    .sort((a, b) => {
+      if (ordenAV === 'recientes') {
+        return String(b.fechaInicio || '').localeCompare(String(a.fechaInicio || ''));
+      }
+      return new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento);
+    });
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-bold text-slate-800 flex items-center"><ShieldCheck className="w-8 h-8 mr-3 text-purple-600"/> Clientes Antivirus</h1></div>
-        <button onClick={() => { setInitialCategory('antivirus'); setEditingClient(null); setIsClientModalOpen(true); }} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl flex items-center font-bold shadow-md w-full md:w-auto justify-center"><Plus className="w-5 h-5 mr-2" /> Vender Licencia</button>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 flex items-center"><ShieldCheck className="w-8 h-8 mr-3 text-purple-600"/> Clientes Antivirus ({filteredClients.length})</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOrdenAV(ordenAV === 'recientes' ? 'vencimiento' : 'recientes')}
+            className="px-4 py-2.5 rounded-xl border-2 border-purple-200 bg-white text-purple-700 font-bold text-xs hover:bg-purple-50 transition-colors"
+          >
+            {ordenAV === 'recientes' ? '✨ Viendo: Más Recientes Primero' : '📅 Viendo: Próximos a Vencer'}
+          </button>
+          <button onClick={() => { setInitialCategory('antivirus'); setEditingClient(null); setIsClientModalOpen(true); }} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl flex items-center font-bold shadow-md w-full md:w-auto justify-center"><Plus className="w-5 h-5 mr-2" /> Vender Licencia</button>
+        </div>
       </div>
-      <div className="relative"><Search className="w-5 h-5 absolute left-4 top-3.5 text-slate-400" /><input type="text" placeholder="Buscar cliente o código KEY..." className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl bg-white focus:border-purple-500 outline-none font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+      <div className="relative"><Search className="w-5 h-5 absolute left-4 top-3.5 text-slate-400" /><input type="text" placeholder="Buscar por cliente (Ej. Julio), teléfono, código KEY o equipo..." className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl bg-white focus:border-purple-500 outline-none font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -2603,6 +2832,11 @@ export default function App() {
 
   const processedClients = useMemo(() => {
     return clientes.map(client => {
+      const rawCat = String(client.categoria || '').trim().toLowerCase();
+      let normalizedCat = 'streaming';
+      if (rawCat === 'antivirus' || (!rawCat && client.proveedorKey)) normalizedCat = 'antivirus';
+      else if (rawCat === 'software') normalizedCat = 'software';
+
       const days = getDaysRemaining(client.fechaVencimiento);
       let statusInfo = { text: 'Activo', color: 'bg-green-100 text-green-800', urgency: 0 };
       if (days < 0) statusInfo = { text: 'Vencido', color: 'bg-gray-200 text-gray-800', urgency: 5 };
@@ -2610,7 +2844,7 @@ export default function App() {
       else if (days === 1) statusInfo = { text: 'Vence mañana', color: 'bg-red-100 text-red-800', urgency: 3 };
       else if (days <= 3) statusInfo = { text: 'Aviso Importante', color: 'bg-orange-100 text-orange-800', urgency: 2 };
       else if (days <= parametros.diasAlerta) statusInfo = { text: 'Próximo a vencer', color: 'bg-yellow-100 text-yellow-800', urgency: 1 };
-      return { ...client, daysRemaining: days, statusInfo };
+      return { ...client, categoria: normalizedCat, daysRemaining: days, statusInfo };
     });
   }, [clientes]);
 
