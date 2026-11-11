@@ -60,15 +60,26 @@ const addDaysToDate = (dateString, days) => {
 
 const parseLicenseText = (text) => {
   if (!text) return null;
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  // Si "Máquina:" viene pegado en la misma línea de Sistema operativo, lo separamos limpiamente
+  const normalizedText = String(text).replace(/\s+(Máquina\s*:)/gi, '\n$1');
+  const lines = normalizedText.split('\n').map(l => l.trim()).filter(l => l);
   if (lines.length === 0) return null;
   const data = {};
   lines.forEach(line => {
-    const lowerLine = line.toLowerCase();
-    if (lowerLine.includes('código de la suscripción')) data.codigo = line.split(':')[1]?.trim();
-    else if (lowerLine.includes('nombre de usuario')) data.usuario = line.split(':')[1]?.trim();
-    else if (lowerLine.includes('nombre del dispositivo')) data.dispositivo = line.split(':')[1]?.trim();
-    else if (lowerLine.includes('máquina')) data.maquina = line.split(':')[1]?.trim();
+    const colonIdx = line.indexOf(':');
+    if (colonIdx === -1) return;
+    const lowerKey = line.substring(0, colonIdx).trim().toLowerCase();
+    const val = line.substring(colonIdx + 1).trim();
+    if (!val) return;
+
+    if (lowerKey.includes('código de la suscripción') || lowerKey.includes('codigo de la suscripcion')) data.codigo = val;
+    else if (lowerKey.includes('nombre de usuario')) data.usuario = val;
+    else if (lowerKey.includes('nombre del dispositivo')) data.dispositivo = val;
+    else if (lowerKey.includes('nombre del puesto')) data.puesto = val;
+    else if (lowerKey.includes('nombre de la aplicación') || lowerKey.includes('nombre de la aplicacion')) data.aplicacion = val;
+    else if (lowerKey.includes('versión de la aplicación') || lowerKey.includes('version de la aplicacion')) data.version = val;
+    else if (lowerKey.includes('sistema operativo')) data.so = val;
+    else if (lowerKey.includes('máquina') || lowerKey.includes('maquina')) data.maquina = val;
   });
   return Object.keys(data).length > 0 ? data : null;
 };
@@ -909,15 +920,40 @@ const AntivirusList = ({ processedClients, setWaActionModal, setEditingClient, s
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50/50 text-slate-500 font-bold text-xs uppercase"><tr><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Key y Equipo</th><th className="px-6 py-4">Vencimiento</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead>
+            <thead className="bg-slate-50/50 text-slate-500 font-bold text-xs uppercase"><tr><th className="px-6 py-4">Cliente</th><th className="px-6 py-4">Key y Datos del Equipo</th><th className="px-6 py-4">Inicio / Vencimiento</th><th className="px-6 py-4 text-right">Acciones</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {filteredClients.map(client => {
                 const parsedData = parseLicenseText(client.detallesLicencia);
                 return (
-                  <tr key={client.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4"><div className="font-bold text-slate-800">{client.nombre}</div><div className="text-xs text-slate-500">+{client.telefono}</div></td>
-                    <td className="px-6 py-4"><div className="font-mono font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded inline-block">{client.proveedorKey || 'Sin KEY guardada'}</div>{parsedData?.maquina && <div className="text-[11px] font-medium text-slate-500 mt-1">🖥️ {parsedData.maquina}</div>}</td>
-                    <td className="px-6 py-4"><div className="font-medium text-slate-700">{formatDateToLocal(client.fechaVencimiento)}</div><span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${client.statusInfo.color}`}>{client.statusInfo.text}</span></td>
+                  <tr key={client.id} className="hover:bg-slate-50 align-top">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-800">{client.nombre}</div>
+                      <div className="text-xs text-slate-500">+{client.telefono}</div>
+                      <div className="text-[11px] font-bold text-purple-600 mt-1">{client.servicio}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-mono font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg inline-block">
+                        🔑 {client.proveedorKey || 'Sin KEY guardada'}
+                      </div>
+                      {parsedData ? (
+                        <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          {parsedData.dispositivo && <div><span className="font-bold text-slate-500">💻 Dispositivo:</span> <span className="font-mono font-bold text-slate-800">{parsedData.dispositivo}</span></div>}
+                          {parsedData.usuario && <div><span className="font-bold text-slate-500">👤 Usuario:</span> <span className="font-mono font-bold text-purple-700">{parsedData.usuario}</span></div>}
+                          {parsedData.codigo && <div><span className="font-bold text-slate-500">🔖 Suscripción:</span> <span className="font-mono font-bold text-slate-800">{parsedData.codigo}</span></div>}
+                          {parsedData.puesto && parsedData.puesto !== parsedData.dispositivo && <div><span className="font-bold text-slate-500">📍 Puesto:</span> <span className="font-mono text-slate-700">{parsedData.puesto}</span></div>}
+                          {parsedData.aplicacion && <div><span className="font-bold text-slate-500">🛡️ App:</span> <span className="text-slate-700 font-medium">{parsedData.aplicacion} {parsedData.version ? `v${parsedData.version}` : ''}</span></div>}
+                          {parsedData.so && <div className="sm:col-span-2"><span className="font-bold text-slate-500">🪟 Sistema:</span> <span className="text-slate-600">{parsedData.so}</span></div>}
+                          {parsedData.maquina && <div className="sm:col-span-2"><span className="font-bold text-slate-500">⚙️ Máquina:</span> <span className="text-slate-600">{parsedData.maquina}</span></div>}
+                        </div>
+                      ) : client.detallesLicencia ? (
+                        <div className="text-xs text-slate-500 mt-1.5 whitespace-pre-line bg-slate-50 p-2 rounded-lg border border-slate-100">{client.detallesLicencia}</div>
+                      ) : null}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-[11px] text-slate-400 font-semibold">Inicio: {formatDateToLocal(client.fechaInicio)}</div>
+                      <div className="font-bold text-slate-800">Vence: {formatDateToLocal(client.fechaVencimiento)}</div>
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${client.statusInfo.color}`}>{client.statusInfo.text}</span>
+                    </td>
                     <td className="px-6 py-4 text-right"><div className="flex justify-end space-x-2"><button onClick={() => setWaActionModal(client)} className="p-2 bg-green-100 text-green-700 rounded-lg"><MessageCircle className="w-4 h-4" /></button><button onClick={() => { setEditingClient(client); setInitialCategory('antivirus'); setIsClientModalOpen(true); }} className="p-2 bg-blue-100 text-blue-700 rounded-lg"><Edit className="w-4 h-4" /></button><button onClick={() => handleDeleteClient(client.id)} className="p-2 bg-red-100 text-red-700 rounded-lg"><Trash2 className="w-4 h-4" /></button></div></td>
                   </tr>
                 );
@@ -2836,21 +2872,27 @@ export default function App() {
     const isEdit = !!editingClient;
     const isAntivirus = initialCategory === 'antivirus';
     const isSoftware = initialCategory === 'software';
+    const todayStr = getToday().toISOString().split('T')[0];
+    const defaultMonths = isAntivirus ? 12 : 1;
     
     const [formData, setFormData] = useState(editingClient || { 
       nombre: '', telefono: '', servicio: isAntivirus ? 'ESET NOD32 Premium' : isSoftware ? (plantillas[0]?.nombre || 'Software') : 'Netflix', 
       categoria: initialCategory, 
-      fechaInicio: getToday().toISOString().split('T')[0], fechaVencimiento: getToday().toISOString().split('T')[0], 
+      fechaInicio: todayStr,
+      fechaVencimiento: addMonthsToDate(todayStr, defaultMonths), 
       idIntegrante: integrantes[0]?.id || '', proveedorKey: '', detallesLicencia: '',
       idMaster: '', perfil: '', pin: '', correoExterno: '', claveExterna: '', perfilExterno: ''
     });
 
+    const [duracionMeses, setDuracionMeses] = useState(editingClient ? '' : String(defaultMonths));
     const [tipoCuenta, setTipoCuenta] = useState(editingClient ? (editingClient.idMaster ? 'master' : 'externo') : isSoftware ? 'externo' : 'master');
     const [origenKey, setOrigenKey] = useState(editingClient ? 'manual' : 'inventario');
     const [idLlaveSeleccionada, setIdLlaveSeleccionada] = useState('');
     
     const [showAutocomplete, setShowAutocomplete] = useState(false);
     const [perfilesAdicionales, setPerfilesAdicionales] = useState([]);
+
+    const parsedPreview = useMemo(() => parseLicenseText(formData.detallesLicencia), [formData.detallesLicencia]);
 
     const clientesUnicos = useMemo(() => {
       const map = new Map();
@@ -3034,29 +3076,117 @@ export default function App() {
                          <input className="w-full border-2 border-purple-300 rounded-xl p-4 font-mono font-bold text-lg text-center uppercase bg-white focus:border-purple-600" value={formData.proveedorKey || ''} onChange={e => setFormData({...formData, proveedorKey: e.target.value.toUpperCase()})} placeholder="XXXX-XXXX-XXXX-XXXX" />
                        </div>
                     )}
+
+                    {/* CAJA ÚNICA DE TEXTO PARA DATOS DEL EQUIPO / SUSCRIPCIÓN ESET */}
+                    <div className="mt-5 pt-4 border-t border-purple-200/80 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="block text-xs font-black text-purple-900 uppercase tracking-wide">
+                          📋 Datos del Equipo / Suscripción (Pega todo en una sola caja)
+                        </label>
+                        {parsedPreview?.codigo && !formData.proveedorKey && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, proveedorKey: parsedPreview.codigo })}
+                            className="text-[11px] bg-purple-600 text-white px-2.5 py-1 rounded-lg font-bold hover:bg-purple-700"
+                          >
+                            Usar código "{parsedPreview.codigo}" como KEY
+                          </button>
+                        )}
+                      </div>
+                      <textarea
+                        rows="5"
+                        className="w-full border-2 border-purple-200 rounded-xl p-3 font-mono text-xs bg-white focus:border-purple-500 outline-none leading-relaxed"
+                        placeholder={"Código de la suscripción: 3BD-DHS-SCM\nNombre de usuario: EAV-0506588304\nNombre del dispositivo: DESKTOP-91K1Q2J\nNombre del puesto: DESKTOP-91K1Q2J\nNombre de la aplicación: ESET NOD32 Antivirus\nVersión de la aplicación: 20.0.7.0\nSistema operativo: Windows 11 Pro(64-bit)\nMáquina: Intel(R) Core(TM) i3-1005G1 CPU @ 1.20GHz"}
+                        value={formData.detallesLicencia || ''}
+                        onChange={e => setFormData({ ...formData, detallesLicencia: e.target.value })}
+                      />
+
+                      {parsedPreview && (
+                        <div className="bg-white border-2 border-emerald-200 rounded-xl p-3.5 space-y-2 animate-fadeIn">
+                          <div className="text-[11px] font-black uppercase text-emerald-700 flex items-center">
+                            <Check className="w-4 h-4 mr-1" /> Desglose Ordenado Detectado Automáticamente:
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            {parsedPreview.codigo && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100"><span className="text-slate-400 font-bold block text-[10px] uppercase">Código de Suscripción</span><span className="font-mono font-bold text-slate-800">{parsedPreview.codigo}</span></div>}
+                            {parsedPreview.usuario && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100"><span className="text-slate-400 font-bold block text-[10px] uppercase">Nombre de Usuario</span><span className="font-mono font-bold text-purple-700">{parsedPreview.usuario}</span></div>}
+                            {parsedPreview.dispositivo && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100"><span className="text-slate-400 font-bold block text-[10px] uppercase">Nombre del Dispositivo</span><span className="font-mono font-bold text-slate-800">{parsedPreview.dispositivo}</span></div>}
+                            {parsedPreview.puesto && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100"><span className="text-slate-400 font-bold block text-[10px] uppercase">Nombre del Puesto</span><span className="font-mono font-bold text-slate-800">{parsedPreview.puesto}</span></div>}
+                            {parsedPreview.aplicacion && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 sm:col-span-2"><span className="text-slate-400 font-bold block text-[10px] uppercase">Aplicación y Versión</span><span className="font-bold text-slate-800">{parsedPreview.aplicacion} {parsedPreview.version ? `(Versión ${parsedPreview.version})` : ''}</span></div>}
+                            {parsedPreview.so && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 sm:col-span-2"><span className="text-slate-400 font-bold block text-[10px] uppercase">Sistema Operativo</span><span className="text-slate-700 font-medium">{parsedPreview.so}</span></div>}
+                            {parsedPreview.maquina && <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 sm:col-span-2"><span className="text-slate-400 font-bold block text-[10px] uppercase">Máquina / Hardware</span><span className="text-slate-700 font-medium">{parsedPreview.maquina}</span></div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                  </div>
               )}
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-               <h4 className="font-bold text-slate-800 mb-4 flex items-center"><Calendar className="w-5 h-5 mr-2 text-slate-400"/> Duración del Servicio</h4>
+               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                 <h4 className="font-bold text-slate-800 flex items-center"><Calendar className="w-5 h-5 mr-2 text-slate-400"/> Duración del Servicio</h4>
+                 {isAntivirus && (
+                   <span className="text-[11px] font-bold bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg">
+                     🛡️ Predefinido a 1 Año (Puedes elegir cualquier fecha o mes)
+                   </span>
+                 )}
+               </div>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                  <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Inicio del Servicio *</label>
-                  <input type="date" className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold bg-slate-50" value={formData.fechaInicio} onChange={e => setFormData({...formData, fechaInicio: e.target.value})} />
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Inicio del Servicio (Cualquier fecha) *</label>
+                  <input
+                    type="date"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold bg-slate-50 focus:border-blue-500 outline-none"
+                    value={formData.fechaInicio}
+                    onChange={e => {
+                      const nuevaFechaInicio = e.target.value;
+                      const mesesParaSumar = duracionMeses ? parseInt(duracionMeses, 10) : (isAntivirus ? 12 : null);
+                      setFormData({
+                        ...formData,
+                        fechaInicio: nuevaFechaInicio,
+                        fechaVencimiento: (nuevaFechaInicio && mesesParaSumar)
+                          ? addMonthsToDate(nuevaFechaInicio, mesesParaSumar)
+                          : formData.fechaVencimiento
+                      });
+                    }}
+                  />
                  </div>
                  <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Calcular automáticamente</label>
-                  <select className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 text-sm font-medium" onChange={(e) => {
-                      if(e.target.value) setFormData({...formData, fechaVencimiento: addMonthsToDate(formData.fechaInicio, parseInt(e.target.value))});
-                  }}>
-                    <option value="">-- Añadir Tiempo --</option>
-                    <option value="1">1 Mes</option><option value="3">3 Meses</option><option value="6">6 Meses</option><option value="12">12 Meses</option>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Duración Rápida</label>
+                  <select
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 text-sm font-bold focus:border-blue-500 outline-none"
+                    value={duracionMeses}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDuracionMeses(val);
+                      if (val) {
+                        setFormData({
+                          ...formData,
+                          fechaVencimiento: addMonthsToDate(formData.fechaInicio, parseInt(val, 10))
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">-- Fecha Manual Libre --</option>
+                    <option value="1">1 Mes</option>
+                    <option value="2">2 Meses</option>
+                    <option value="3">3 Meses</option>
+                    <option value="6">6 Meses</option>
+                    <option value="12">1 Año (12 Meses)</option>
+                    <option value="24">2 Años (24 Meses)</option>
                   </select>
                  </div>
                  <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Vencimiento Exacto *</label>
-                  <input type="date" className="w-full border-2 border-blue-200 rounded-xl p-3 font-bold text-blue-900 bg-blue-50" value={formData.fechaVencimiento} onChange={e => setFormData({...formData, fechaVencimiento: e.target.value})} />
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Vencimiento Exacto (Editable) *</label>
+                  <input
+                    type="date"
+                    className="w-full border-2 border-blue-200 rounded-xl p-3 font-bold text-blue-900 bg-blue-50 focus:border-blue-600 outline-none"
+                    value={formData.fechaVencimiento}
+                    onChange={e => {
+                      setDuracionMeses('');
+                      setFormData({...formData, fechaVencimiento: e.target.value});
+                    }}
+                  />
                  </div>
                </div>
             </div>
