@@ -14,7 +14,7 @@ import './index.css';
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJZ-EimBapTatv0qpBFTTZ3UyiIB_lh9nZ1zagAJ6-ylxfQUvRKPkJMC_MIvkJUjIy/exec"; 
 const parametros = { nombreNegocio: 'KGB Streaming', codigoPais: '51', diasAlerta: 5 };
 const ADMIN_PASSWORD = "S15t3w4s4860"; 
-const CATALOG_URL = "https://kgb-streaming.ola.click/products";
+const CATALOG_URL = "https://kgb-streaming.vercel.app/";
 const LOGO_URL = "https://i.imgur.com/1jKx236.png";
 
 // ==========================================
@@ -344,6 +344,99 @@ const buildVipGiftMessage = ({
 };
 
 // ==========================================
+// 2.3 MOTOR ANTI-SPAM PARA ENGANCHE DE CONOCIDOS (30 MENSAJES UNIFICADOS)
+// ==========================================
+const CABECERAS_ENGANCHE_CONOCIDOS = [
+  "¡Hola *{nombre}*! ¿Cómo estás? 😊 Te escribo rapidito porque estoy impulsando mi proyecto de cuentas de streaming y quería regalarte un acceso de *{producto}* por {dias} días, solo para que pruebes qué tal funciona el servicio. Aquí te dejo tus datos:",
+  "¡Qué tal, *{nombre}*! Espero que todo marche súper bien por allá 🌟. Te cuento que me quedó un perfil libre de *{producto}* y pensé en pasártelo gratis por {dias} días para que lo pruebes en casa sin ningún compromiso:",
+  "¡Hola *{nombre}*! Un gusto saludarte 👋. Ando haciendo crecer mi catálogo de entretenimiento y quería tener este detalle contigo: te separé un perfil de *{producto}* totalmente gratis por {dias} días para que veas qué tal te parece:",
+  "¡Buen día, *{nombre}*! 😊 Espero que estés teniendo una excelente semana. Quería pedirte un pequeño favor: te activo gratis {dias} días de *{producto}* para que lo pruebes en tu tele o celular y luego me cuentes qué tal te fue:",
+  "¡Hola, qué tal *{nombre}*! 🙌 Paso a saludarte y de paso dejarte un detallito: habilité una cuenta de *{producto}* y te guardé un perfil de cortesía por {dias} días para que disfrutes algunas películas o series y pruebes mi servicio:",
+  "¡Saludos, *{nombre}*! ✨ Espero que todo esté de maravilla. Como estoy fortaleciendo mi servicio de plataformas digitales, quiero obsequiarte {dias} días gratis de *{producto}* solo para que lo pruebes con toda confianza:",
+  "¡Hola *{nombre}*! 💙 Te escribo brevemente porque hoy liberé unos accesos de *{producto}* y quise compartirte uno gratis por {dias} días, sin compromisos, solo para que conozcas cómo trabajo mis cuentas:",
+  "¡Qué tal *{nombre}*! 😊 ¿Cómo va todo? Oye, te cuento que ahora también estoy manejando plataformas de streaming y quería darte a probar *{producto}* gratis por {dias} días. Aquí tienes tu acceso listo:",
+  "¡Hola *{nombre}*! 🍿 Si estos días tienes ganas de ver una buena serie o película, te dejé activo un perfil de cortesía en *{producto}* por {dias} días. Es totalmente gratis para que pruebes la calidad del servicio:",
+  "¡Hola, *{nombre}*! 👋 Espero que estés muy bien. Me quedó un espacio disponible en *{producto}* y preferí regalártelo por {dias} días para que lo disfrutes en casa y veas qué tal funciona todo:",
+  "¡Un saludo cordial, *{nombre}*! 😊 Quería compartir contigo un acceso de prueba gratuita a *{producto}* durante {dias} días. No tiene ningún costo ni compromiso, es solo para que conozcas mi servicio de streaming:",
+  "¡Hola *{nombre}*! 🌟 ¿Todo bien por allá? Te cuento que estoy promoviendo mis plataformas digitales y quise empezar compartiendo {dias} días gratis de *{producto}* con personas de confianza. Aquí tienes tu perfil:",
+  "¡Qué tal, *{nombre}*! 👋 Espero que tu semana vaya excelente. Te paso por aquí un perfil gratuito de *{producto}* por {dias} días para que lo pruebes en tu TV, celular o computadora cuando gustes:",
+  "¡Hola *{nombre}*! ✨ Hoy habilité nuevos perfiles de *{producto}* y quise separarte uno de regalo por {dias} días para que pruebes el servicio con calma y me digas qué te parece:",
+  "¡Buenas, *{nombre}*! 😊 Te saludo con mucho gusto. Te envío este acceso de cortesía de *{producto}* válido por {dias} días, totalmente gratis, para que puedas disfrutarlo y conocer mi catálogo de streaming:",
+  "¡Hola *{nombre}*! 🎬 Te cuento que ando haciendo crecer mi emprendimiento de plataformas y te quería regalar {dias} días de *{producto}* para que lo pruebes sin ningún compromiso. Aquí están los datos:",
+  "¡Qué gusto saludarte, *{nombre}*! 🙌 Quise tener un pequeño detalle contigo hoy y te activé un perfil de prueba gratuita en *{producto}* por {dias} días. Ojalá lo disfrutes muchísimo:",
+  "¡Hola, qué tal *{nombre}*! 💙 Paso un segundito para dejarte un regalo: {dias} días gratis de *{producto}* para que veas tus series o películas favoritas y pruebes qué tal anda nuestro servicio:",
+  "¡Hola *{nombre}*! 😊 Espero que estés pasando un gran día. Como sé que siempre cae bien un momento de entretenimiento en casa, te comparto {dias} días de cortesía en *{producto}* solo para que lo pruebes:",
+  "¡Saludos *{nombre}*! 🌟 Te escribo personalmente porque tengo un perfil libre de *{producto}* y me encantaría que lo pruebes gratis durante {dias} días para que conozcas la estabilidad de mis cuentas:",
+  "¡Hola *{nombre}*! 👋 ¿Cómo te ha ido? Quería invitarte a probar mi servicio de streaming regalándote {dias} días libres en *{producto}*. Cero compromisos, solo entra y disfrútalo:",
+  "¡Qué tal *{nombre}*! 🍿 Te comparto un acceso directo de cortesía a *{producto}* por {dias} días. Lo estoy dando a probar a mis contactos cercanos para que conozcan cómo funcionan mis plataformas:",
+  "¡Hola, *{nombre}*! ✨ Espero que todo marche excelente. Te separé un cupo gratuito de *{producto}* por {dias} días para que le eches un vistazo al servicio desde tu televisor o celular:",
+  "¡Buen día, *{nombre}*! 💙 Te dejo por aquí un obsequio sencillo: un perfil privado en *{producto}* por {dias} días totalmente gratis, solo para que pruebes qué tal te va con la plataforma:",
+  "¡Hola *{nombre}*! 😊 Estoy dando a conocer mis cuentas de streaming y quería que fueras de las primeras personas en probar *{producto}* gratis durante {dias} días. Aquí te dejo los accesos:",
+  "¡Qué tal, *{nombre}*! 🙌 Espero que todo esté súper bien. Te regalé un perfil de prueba por {dias} días en *{producto}* para que lo uses con total libertad y conozcas el servicio que manejo:",
+  "¡Hola *{nombre}*! 🎬 Paso a dejarte este detallito: {dias} días gratis de *{producto}* listos para usar desde hoy. Es solo de cortesía para que pruebes la plataforma y me tengas presente cuando busques streaming:",
+  "¡Saludos cordiales, *{nombre}*! 🌟 Me sobró un perfil en una cuenta nueva de *{producto}* y quise compartírtelo gratis por {dias} días para que disfrutes películas y series en casa:",
+  "¡Hola, qué tal *{nombre}*! 😊 Sin ningún compromiso, te paso {dias} días de prueba gratuita en *{producto}* para que compruebes la calidad del servicio y lo disfrutes en tus ratos libres:",
+  "¡Hola *{nombre}*! 💙 Qué gusto escribirte. Te activé un perfil de cortesía en *{producto}* por {dias} días totalmente gratis para que lo pruebes en casa y conozcas un poco de lo que ofrezco en streaming:"
+];
+
+const CIERRES_ENGANCHE_CONOCIDOS = [
+  "¡Ojalá lo disfrutes muchísimo! Cualquier ayudita que necesites para ingresar en tu tele o celular, me escribes con total confianza. 😊🍿",
+  "¡Que lo disfrutes en casa! Solo entra al perfil asignado y listo. Si tienes alguna duda al conectarte, aquí estoy para ayudarte. 💙",
+  "Cero compromisos, solo entra y disfrútalo en tus ratos libres. ¡Me avisas cuando hayas podido ingresar! 🙌✨",
+  "¡A maratonear se ha dicho! Si te pide algún código o necesitas ayuda para instalar la app, escríbeme nomás. 😊🎬",
+  "Un detallito para que conozcas cómo trabajo mis cuentas. ¡Que tengas una súper semana! 🌟💙",
+  "Espero que te guste la plataforma. Cualquier consulta técnica o si quieres probar otra app, me escribes cuando gustes. 👋😊"
+];
+
+const SERIES_GANCHO_SUGERIDAS = {
+  'HBO Max': ['The Last of Us', 'House of the Dragon', 'El Pingüino', 'Euphoria'],
+  'Apple TV+': ['Silo', 'Severance', 'Ted Lasso', 'Presunto Inocente'],
+  'Crunchyroll': ['Solo Leveling', 'Demon Slayer', 'Jujutsu Kaisen', 'One Piece'],
+  'Cine Star': ['Películas de acción y estrenos recientes', 'Clásicos de suspenso'],
+  'Disney+': ['Shōgun', 'El Oso (The Bear)', 'Deadpool & Wolverine', 'Intensamente 2'],
+  'Netflix': ['El Juego del Calamar', 'Stranger Things', 'La Casa de Papel']
+};
+
+const buildEngancheConocidosMessage = ({
+  clientName,
+  platformName,
+  days = 15,
+  correo,
+  clave,
+  perfil,
+  pin,
+  serieGancho = '',
+  headerIdx = null,
+  footerIdx = null
+}) => {
+  const nombreFinal = clientName || 'Amigo/a';
+  const prodFinal = platformName || 'HBO Max';
+  const hIdx = headerIdx !== null ? (headerIdx % CABECERAS_ENGANCHE_CONOCIDOS.length) : Math.floor(Math.random() * CABECERAS_ENGANCHE_CONOCIDOS.length);
+  const fIdx = footerIdx !== null ? (footerIdx % CIERRES_ENGANCHE_CONOCIDOS.length) : Math.floor(Math.random() * CIERRES_ENGANCHE_CONOCIDOS.length);
+
+  const cabecera = CABECERAS_ENGANCHE_CONOCIDOS[hIdx]
+    .replace(/{nombre}/gi, nombreFinal)
+    .replace(/{producto}/gi, prodFinal)
+    .replace(/{dias}/gi, String(days || 15));
+
+  let msg = `${cabecera}\n\n`;
+  msg += `🎬 *TUS ACCESOS DE CORTESÍA (${prodFinal.toUpperCase()}):*\n`;
+  msg += `👤 *Correo:* ${correo || 'Por asignar'}\n`;
+  msg += `🔑 *Contraseña:* ${clave || 'Por asignar'}\n`;
+  msg += `📺 *Perfil Asignado:* Perfil ${perfil || '1'}\n`;
+  if (pin && String(pin).trim() !== '') {
+    msg += `🔐 *PIN:* ${pin}\n`;
+  }
+  if (serieGancho && serieGancho.trim() !== '') {
+    msg += `\n💡 *Recomendación para empezar:* ${serieGancho.trim()}\n`;
+  }
+
+  msg += `\n${CIERRES_ENGANCHE_CONOCIDOS[fIdx]}`;
+  msg += `\n\n━━━━━━━━━━━━━━━━━━\n✨ *Por cierto, si algún día tú o alguien en casa busca Disney+, Netflix, Prime, antivirus o software, ya tengo todo ordenado en mi nuevo catálogo web:*\n👉 ${CATALOG_URL}`;
+  return msg;
+};
+
+// ==========================================
 // 3. COMPONENTES DE INTERFAZ (UI)
 // ==========================================
 const KgbNeonLogo = ({ size = 'md', showText = false }) => {
@@ -352,20 +445,18 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
 
   return (
     <div className="inline-flex items-center select-none flex-shrink-0">
-      <div className={`relative ${dimensions} flex items-center justify-center flex-shrink-0 group`}>
-        {/* Halo de luz neón cian y púrpura detrás del escudo transparente */}
-        <div className="absolute inset-1 rounded-full bg-gradient-to-r from-cyan-400/40 via-blue-500/40 to-fuchsia-600/40 blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-
+      <div className={`relative ${dimensions} flex items-center justify-center flex-shrink-0`}>
         {!imgError ? (
           <img
             src={LOGO_URL}
             alt="KGB Streaming"
             referrerPolicy="no-referrer"
+            decoding="async"
             onError={() => setImgError(true)}
-            className="relative z-10 w-full h-full object-contain drop-shadow-[0_0_10px_rgba(0,240,255,0.65)] transition-transform duration-300 group-hover:scale-105"
+            className="relative z-10 w-full h-full object-contain"
           />
         ) : (
-          <svg viewBox="0 0 240 240" className="relative z-10 w-full h-full drop-shadow-[0_0_12px_rgba(0,240,255,0.65)]">
+          <svg viewBox="0 0 240 240" className="relative z-10 w-full h-full">
             <defs>
               <linearGradient id="kgbNeonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#00f2fe" />
@@ -377,10 +468,6 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
                 <stop offset="50%" stopColor="#6366f1" />
                 <stop offset="100%" stopColor="#e879f9" />
               </linearGradient>
-              <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
             </defs>
 
             {/* Rayos eléctricos exteriores */}
@@ -395,7 +482,6 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
               fill="#050614"
               stroke="url(#kgbNeonGrad)"
               strokeWidth="7"
-              filter="url(#neonGlow)"
             />
             {/* Borde interior neón */}
             <polygon
@@ -419,7 +505,6 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
               fontStyle="italic"
               fontSize="64"
               letterSpacing="1"
-              filter="url(#neonGlow)"
             >
               KGB
             </text>
@@ -447,7 +532,7 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
       {showText && (
         <div className="ml-3 flex flex-col">
           <div className="flex items-center font-black text-xl tracking-wider italic leading-none">
-            <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(0,242,254,0.35)]">
+            <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent">
               KGB
             </span>
             <span className="text-fuchsia-400 text-xs ml-1.5 not-italic font-extrabold px-1.5 py-0.5 rounded bg-fuchsia-500/10 border border-fuchsia-500/30">
@@ -465,11 +550,9 @@ const KgbNeonLogo = ({ size = 'md', showText = false }) => {
 
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTab, setIsAuthenticated }) => (
   <>
-    {isMobileMenuOpen && <div className="fixed inset-0 bg-[#050514]/80 z-40 md:hidden backdrop-blur-md animate-fadeIn" onClick={() => setIsMobileMenuOpen(false)} />}
-    <aside className={`fixed md:static inset-y-0 left-0 w-64 flex-shrink-0 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex flex-col shadow-[4px_0_30px_rgba(0,240,255,0.12)] border-r border-cyan-500/20`}>
+    {isMobileMenuOpen && <div className="fixed inset-0 bg-black/75 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
+    <aside className={`fixed md:static inset-y-0 left-0 w-64 flex-shrink-0 bg-[#060716] text-slate-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-200 ease-out z-50 flex flex-col shadow-xl border-r border-cyan-500/20`}>
       <div className="p-4 sm:p-5 bg-[#040510] flex justify-between items-center border-b border-fuchsia-500/20 relative overflow-hidden">
-        <div className="absolute -left-6 -top-6 w-24 h-24 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-fuchsia-500/15 rounded-full blur-2xl pointer-events-none"></div>
         <KgbNeonLogo size="md" showText={true} />
         <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-cyan-400 p-1"><X className="w-6 h-6" /></button>
       </div>
@@ -480,6 +563,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
         <button onClick={() => { setActiveTab('catalogo'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'catalogo' ? 'bg-gradient-to-r from-cyan-500/20 to-fuchsia-600/20 text-fuchsia-300 font-black border border-fuchsia-400/40 shadow-[0_0_15px_rgba(217,70,239,0.2)]' : 'hover:bg-white/5 hover:text-fuchsia-200'}`}><Star className="w-5 h-5 mr-3 text-fuchsia-400" /> Catálogo y Ofertas</button>
         <button onClick={() => { setActiveTab('campanas'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'campanas' ? 'bg-gradient-to-r from-fuchsia-600/20 to-purple-600/20 text-pink-300 font-black border border-pink-400/40 shadow-[0_0_15px_rgba(236,72,153,0.2)]' : 'hover:bg-white/5 hover:text-pink-200'}`}><Gift className="w-5 h-5 mr-3 text-pink-400" /> Campañas y Regalos</button>
         <button onClick={() => { setActiveTab('regalos_vip'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'regalos_vip' ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-600/25 to-fuchsia-600/25 text-cyan-200 font-black border border-cyan-400/40 shadow-[0_0_18px_rgba(168,85,247,0.25)]' : 'hover:bg-white/5 hover:text-indigo-200'}`}><Gift className="w-5 h-5 mr-3 text-cyan-400" /> Regalos VIP (HBO)</button>
+        <button onClick={() => { setActiveTab('enganche_conocidos'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'enganche_conocidos' ? 'bg-gradient-to-r from-emerald-500/25 via-cyan-500/20 to-blue-600/25 text-emerald-300 font-black border border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.25)]' : 'hover:bg-white/5 hover:text-emerald-200'}`}><UserPlus className="w-5 h-5 mr-3 text-emerald-400" /> Enganche Conocidos</button>
 
         <div className="text-[11px] font-black text-fuchsia-400/70 uppercase tracking-widest mb-2 px-3 mt-6">Servicios y Licencias</div>
         <button onClick={() => { setActiveTab('streaming'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'streaming' ? 'bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(0,242,254,0.2)]' : 'hover:bg-white/5 hover:text-cyan-200'}`}><MonitorPlay className="w-5 h-5 mr-3 text-cyan-400" /> Streaming</button>
@@ -531,6 +615,12 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       return [];
     }
   });
+
+  // Referencias estables para evitar re-renderizados en cascada en Android al sortear
+  const pamperedRef = useRef(pamperedPhones);
+  const winnersRef = useRef(dailyWinnerPhones);
+  useEffect(() => { pamperedRef.current = pamperedPhones; }, [pamperedPhones]);
+  useEffect(() => { winnersRef.current = dailyWinnerPhones; }, [dailyWinnerPhones]);
 
   // 1. Calificación inteligente de TODOS los clientes: Streaming + Antivirus + Software Profesional
   const clientesCalificados = useMemo(() => {
@@ -616,23 +706,25 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     return pool[0];
   };
 
-  // Sorteo directo de 3 GANADORES DEL DÍA (1er, 2do y 3er Lugar) sin bucles
+  // Sorteo directo de 3 GANADORES DEL DÍA (1er, 2do y 3er Lugar) 100% estable en Android
   const realizarSorteoTresLugares = useCallback((forzarManual = false, listaExcluidosCustom = null) => {
     if (clientesCalificados.length === 0) return;
 
     const targetCount = Math.min(3, clientesCalificados.length);
-    const excluidos = listaExcluidosCustom !== null ? listaExcluidosCustom : pamperedPhones;
+    const excluidos = listaExcluidosCustom !== null ? listaExcluidosCustom : pamperedRef.current;
     let candidatos = clientesCalificados.filter(c => !excluidos.includes(c.uniqueKey));
 
     // Si quedan menos de 3 candidatos para completar el podio, reiniciamos el ciclo
     if (candidatos.length < targetCount) {
       candidatos = [...clientesCalificados];
+      pamperedRef.current = [];
       setPamperedPhones([]);
       localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify([]));
     }
 
-    if (forzarManual && candidatos.length > targetCount && dailyWinnerPhones.length > 0) {
-      const sinActuales = candidatos.filter(c => !dailyWinnerPhones.includes(c.uniqueKey));
+    const actuales = winnersRef.current;
+    if (forzarManual && candidatos.length > targetCount && actuales.length > 0) {
+      const sinActuales = candidatos.filter(c => !actuales.includes(c.uniqueKey));
       if (sinActuales.length >= targetCount) candidatos = sinActuales;
     }
 
@@ -652,15 +744,16 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
 
     const nuevosIds = seleccionados.map(s => s.uniqueKey);
     const todayKey = getToday().toISOString().split('T')[0];
+    winnersRef.current = nuevosIds;
     setDailyWinnerPhones(nuevosIds);
     localStorage.setItem('kgb_daily_winners_v2', JSON.stringify({ date: todayKey, phones: nuevosIds }));
-  }, [clientesCalificados, pamperedPhones, dailyWinnerPhones]);
+  }, [clientesCalificados]);
 
   // Reemplazar solo 1 puesto específico (1er, 2do o 3er lugar)
   const sortearUnSoloLugar = (indexLugar) => {
     if (clientesCalificados.length === 0) return;
-    const ocupadosHoy = dailyWinnerPhones;
-    let pool = clientesCalificados.filter(c => !ocupadosHoy.includes(c.uniqueKey) && !pamperedPhones.includes(c.uniqueKey));
+    const ocupadosHoy = winnersRef.current;
+    let pool = clientesCalificados.filter(c => !ocupadosHoy.includes(c.uniqueKey) && !pamperedRef.current.includes(c.uniqueKey));
     if (pool.length === 0) {
       pool = clientesCalificados.filter(c => !ocupadosHoy.includes(c.uniqueKey));
     }
@@ -669,9 +762,10 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     const nuevoElegido = pickOneWeighted(pool);
     if (!nuevoElegido) return;
 
-    const nuevaLista = [...dailyWinnerPhones];
+    const nuevaLista = [...ocupadosHoy];
     nuevaLista[indexLugar] = nuevoElegido.uniqueKey;
     const todayKey = getToday().toISOString().split('T')[0];
+    winnersRef.current = nuevaLista;
     setDailyWinnerPhones(nuevaLista);
     localStorage.setItem('kgb_daily_winners_v2', JSON.stringify({ date: todayKey, phones: nuevaLista }));
   };
@@ -681,12 +775,12 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     if (clientesCalificados.length > 0 && !sorteoInicializadoRef.current) {
       sorteoInicializadoRef.current = true;
       const targetCount = Math.min(3, clientesCalificados.length);
-      const validos = dailyWinnerPhones.filter(id => clientesCalificados.some(c => c.uniqueKey === id));
+      const validos = winnersRef.current.filter(id => clientesCalificados.some(c => c.uniqueKey === id));
       if (validos.length < targetCount) {
         realizarSorteoTresLugares(false);
       }
     }
-  }, [clientesCalificados, dailyWinnerPhones, realizarSorteoTresLugares]);
+  }, [clientesCalificados, realizarSorteoTresLugares]);
 
   const ganadoresDelDia = useMemo(() => {
     if (clientesCalificados.length === 0) return [];
@@ -747,35 +841,26 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
     {
       lugar: '🥇 1ER LUGAR',
       subtitulo: 'Premio Mayor VIP',
-      borderClass: 'border-amber-400/60 shadow-[0_0_25px_rgba(251,191,36,0.2)]',
-      badgeClass: 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950',
-      glowClass: 'bg-amber-400/15'
+      borderClass: 'border-amber-400/60',
+      badgeClass: 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950'
     },
     {
       lugar: '🥈 2DO LUGAR',
       subtitulo: 'Segundo Ganador',
-      borderClass: 'border-cyan-400/50 shadow-[0_0_20px_rgba(0,240,255,0.15)]',
-      badgeClass: 'bg-gradient-to-r from-cyan-300 to-blue-400 text-slate-950',
-      glowClass: 'bg-cyan-400/15'
+      borderClass: 'border-cyan-400/50',
+      badgeClass: 'bg-gradient-to-r from-cyan-300 to-blue-400 text-slate-950'
     },
     {
       lugar: '🥉 3ER LUGAR',
       subtitulo: 'Tercer Ganador',
-      borderClass: 'border-fuchsia-400/50 shadow-[0_0_20px_rgba(217,70,239,0.15)]',
-      badgeClass: 'bg-gradient-to-r from-fuchsia-400 to-pink-500 text-white',
-      glowClass: 'bg-fuchsia-500/15'
+      borderClass: 'border-fuchsia-400/50',
+      badgeClass: 'bg-gradient-to-r from-fuchsia-400 to-pink-500 text-white'
     }
   ];
 
   return (
-    <div className="space-y-6 animate-fadeIn relative">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white/90 backdrop-blur-sm p-4 sm:p-5 rounded-3xl border border-cyan-500/20 shadow-sm relative overflow-hidden">
-        <img
-          src={LOGO_URL}
-          alt=""
-          referrerPolicy="no-referrer"
-          className="hidden sm:block absolute -right-4 -bottom-6 w-32 h-32 object-contain opacity-[0.07] pointer-events-none select-none"
-        />
+    <div className="space-y-6 relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-cyan-500/20 shadow-sm relative overflow-hidden">
         <div className="flex items-center space-x-3 sm:space-x-4 relative z-10 min-w-0">
           <KgbNeonLogo size="lg" showText={false} />
           <div className="min-w-0">
@@ -787,7 +872,7 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
           href={CATALOG_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative z-10 inline-flex items-center justify-center px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-[#070818] text-cyan-300 hover:text-white border border-cyan-400/40 text-xs font-black tracking-wide shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all w-full sm:w-fit flex-shrink-0"
+          className="relative z-10 inline-flex items-center justify-center px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-[#070818] text-cyan-300 hover:text-white border border-cyan-400/40 text-xs font-black tracking-wide shadow-sm transition-colors w-full sm:w-fit flex-shrink-0"
         >
           <Star className="w-4 h-4 mr-2 text-fuchsia-400" /> Ver Mi Catálogo Web
         </a>
@@ -797,21 +882,12 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
       {/* PODIO DE 3 GANADORES DEL DÍA (1ER, 2DO Y 3ER LUGAR - STREAMING, ANTIVIRUS Y SOFTWARE) */}
       {/* ========================================== */}
       {ganadoresDelDia.length > 0 && (
-        <div className="relative overflow-hidden rounded-3xl bg-[#070818] text-white p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,240,255,0.18)] border-2 border-cyan-400/40 space-y-5">
-          <div className="absolute -left-16 -top-16 w-48 h-48 sm:w-64 sm:h-64 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute -right-16 -bottom-16 w-48 h-48 sm:w-64 sm:h-64 bg-fuchsia-600/25 rounded-full blur-3xl pointer-events-none"></div>
-          <img
-            src={LOGO_URL}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-36 h-36 sm:w-56 sm:h-56 object-contain opacity-[0.06] pointer-events-none select-none"
-          />
-
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#070818] via-[#0c102b] to-[#170926] text-white p-4 sm:p-6 shadow-lg border-2 border-cyan-400/40 space-y-5">
           {/* Cabecera del Sorteo Triple */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-10 border-b border-white/10 pb-4">
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-400/25 via-cyan-500/25 to-fuchsia-500/25 border border-amber-400/50 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center">
+                <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center">
                   <Gift className="w-3.5 h-3.5 mr-1.5 text-amber-400" /> Podio Diario KGB • 3 Ganadores del Día
                 </span>
                 <span className="px-2.5 py-1 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/30 text-fuchsia-200 text-xs font-bold">
@@ -826,17 +902,13 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
             <button
               type="button"
               onClick={() => {
-                ganadoresDelDia.forEach(g => {
-                  if (!pamperedPhones.includes(g.uniqueKey)) {
-                    pamperedPhones.push(g.uniqueKey);
-                  }
-                });
-                const actualizados = Array.from(new Set(pamperedPhones));
+                const actualizados = Array.from(new Set([...pamperedRef.current, ...ganadoresDelDia.map(g => g.uniqueKey)]));
+                pamperedRef.current = actualizados;
                 setPamperedPhones(actualizados);
                 localStorage.setItem('kgb_pampered_cycle_v1', JSON.stringify(actualizados));
                 realizarSorteoTresLugares(true, actualizados);
               }}
-              className="px-4 py-2.5 bg-gradient-to-r from-cyan-500/20 to-fuchsia-500/20 hover:from-cyan-500/30 hover:to-fuchsia-500/30 text-cyan-200 border border-cyan-400/40 font-black rounded-2xl text-xs flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
+              className="px-4 py-2.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-400/40 font-black rounded-2xl text-xs flex items-center justify-center transition-colors flex-shrink-0"
             >
               <RefreshCw className="w-4 h-4 mr-2 text-amber-300" /> Sortear Nuevos 3 Ganadores
             </button>
@@ -849,11 +921,9 @@ const Dashboard = ({ stats, urgentClients, setWaActionModal, processedClients = 
               const yaPremiado = pamperedPhones.includes(ganador.uniqueKey);
               return (
                 <div
-                  key={ganador.uniqueKey}
-                  className={`rounded-2xl bg-[#0b0d24]/90 border-2 ${cfg.borderClass} p-4 flex flex-col justify-between space-y-4 relative overflow-hidden`}
+                  key={`${idx}_${ganador.uniqueKey}`}
+                  className={`rounded-2xl bg-[#0b0d24] border-2 ${cfg.borderClass} p-4 flex flex-col justify-between space-y-4 relative overflow-hidden`}
                 >
-                  <div className={`absolute -right-10 -top-10 w-28 h-28 ${cfg.glowClass} rounded-full blur-2xl pointer-events-none`}></div>
-
                   <div className="space-y-2.5 relative z-10">
                     <div className="flex items-center justify-between gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow ${cfg.badgeClass}`}>
@@ -2739,6 +2809,878 @@ const RegalosVipHboView = ({
 };
 
 // ==========================================
+// 4.3 NUEVO MÓDULO: ENGANCHE DE CONOCIDOS (30 MENSAJES UNIFICADOS + SEGUIMIENTO DÍA 7 Y 14)
+// ==========================================
+const EngancheConocidosView = ({
+  cuentasMaster,
+  setCuentasMaster,
+  clientes,
+  setClientes,
+  integrantes,
+  codigoPais,
+  showToast,
+  syncToSheets,
+  syncStatus
+}) => {
+  const [subTab, setSubTab] = useState('enviar'); // 'enviar' | 'seguimiento' | 'cuentas'
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filtroSinStreaming, setFiltroSinStreaming] = useState(true);
+  const [searchProspecto, setSearchProspecto] = useState('');
+
+  // Selección de cuenta promocional o máster
+  const [modoCuenta, setModoCuenta] = useState('guardada'); // 'guardada' | 'manual'
+  const [selectedMasterId, setSelectedMasterId] = useState('');
+  const [manualPlatform, setManualPlatform] = useState('HBO Max');
+  const [manualCorreo, setManualCorreo] = useState('');
+  const [manualClave, setManualClave] = useState('');
+  const [assignedProfile, setAssignedProfile] = useState('1');
+  const [assignedPin, setAssignedPin] = useState('');
+
+  // Configuración de prueba (15 días por defecto) + Serie gancho + Semillas Anti-Spam
+  const [giftDays, setGiftDays] = useState(15);
+  const [serieGancho, setSerieGancho] = useState('');
+  const [headerSeed, setHeaderSeed] = useState(() => Math.floor(Math.random() * CABECERAS_ENGANCHE_CONOCIDOS.length));
+  const [footerSeed, setFooterSeed] = useState(() => Math.floor(Math.random() * CIERRES_ENGANCHE_CONOCIDOS.length));
+
+  // Formulario para subir cuentas promo gratis (Apple TV+, HBO Max, Crunchyroll, Cine Star)
+  const [newPromoAcc, setNewPromoAcc] = useState({
+    id: null,
+    plataforma: 'HBO Max',
+    correo: '',
+    clave: '',
+    limitePerfiles: 5,
+    fechaRenovacion: addMonthsToDate(getToday().toISOString().split('T')[0], 1)
+  });
+  const [isCustomPromoPlat, setIsCustomPromoPlat] = useState(false);
+
+  const cuentasDisponibles = useMemo(() => {
+    const promos = cuentasMaster.filter(m => String(m.id).startsWith('MPROMO_') || String(m.id).startsWith('MVIP_'));
+    const otras = cuentasMaster.filter(m => !String(m.id).startsWith('MPROMO_') && !String(m.id).startsWith('MVIP_'));
+    return [...promos, ...otras];
+  }, [cuentasMaster]);
+
+  const calcularPerfilLibre = useCallback((masterId) => {
+    if (!masterId) return '1';
+    const ocupados = clientes
+      .filter(c => c.idMaster === masterId && getDaysRemaining(c.fechaVencimiento) >= 0)
+      .map(c => parseInt(c.perfil, 10))
+      .filter(n => !isNaN(n));
+    let sig = 1;
+    while (ocupados.includes(sig)) sig++;
+    return String(sig);
+  }, [clientes]);
+
+  useEffect(() => {
+    if (!selectedMasterId && cuentasDisponibles.length > 0) {
+      const firstId = cuentasDisponibles[0].id;
+      setSelectedMasterId(firstId);
+      setAssignedProfile(calcularPerfilLibre(firstId));
+    }
+  }, [cuentasDisponibles, selectedMasterId, calcularPerfilLibre]);
+
+  const currentMaster = cuentasMaster.find(m => m.id === selectedMasterId) || cuentasDisponibles[0] || null;
+  const activePlatformName = modoCuenta === 'guardada' ? (currentMaster?.plataforma || 'HBO Max') : manualPlatform;
+  const activeCorreo = modoCuenta === 'guardada' ? (currentMaster?.correo || '') : manualCorreo;
+  const activeClave = modoCuenta === 'guardada' ? (currentMaster?.clave || '') : manualClave;
+
+  // Base de contactos únicos, detectando quiénes son clientes de Antivirus/Software que aún NO tienen Streaming
+  const prospectosBD = useMemo(() => {
+    const telefonosConStreaming = new Set(
+      clientes
+        .filter(c => {
+          const cat = String(c.categoria || 'streaming').toLowerCase();
+          return cat === 'streaming' && !String(c.servicio || '').includes('(Enganche');
+        })
+        .map(c => String(c.telefono || '').trim())
+    );
+
+    const map = new Map();
+    clientes.forEach(c => {
+      const tel = String(c.telefono || '').trim();
+      if (!tel || !c.nombre) return;
+      if (!map.has(tel)) {
+        map.set(tel, {
+          id: c.id,
+          nombre: c.nombre,
+          telefono: tel,
+          servicio: c.servicio,
+          categoria: String(c.categoria || 'streaming').toLowerCase(),
+          tieneStreaming: telefonosConStreaming.has(tel)
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [clientes]);
+
+  const sugerencias = useMemo(() => {
+    const term = clientName.trim().toLowerCase();
+    if (!term) return prospectosBD.slice(0, 15);
+    return prospectosBD.filter(c =>
+      c.nombre.toLowerCase().includes(term) || c.telefono.includes(term)
+    ).slice(0, 15);
+  }, [prospectosBD, clientName]);
+
+  const listaProspectosRapida = useMemo(() => {
+    const term = searchProspecto.trim().toLowerCase();
+    return prospectosBD
+      .filter(c => (filtroSinStreaming ? !c.tieneStreaming : true))
+      .filter(c => !term || c.nombre.toLowerCase().includes(term) || c.telefono.includes(term) || String(c.servicio || '').toLowerCase().includes(term))
+      .slice(0, 18);
+  }, [prospectosBD, filtroSinStreaming, searchProspecto]);
+
+  const sugerenciasSeries = useMemo(() => {
+    const platLower = String(activePlatformName || '').toLowerCase();
+    if (platLower.includes('hbo') || platLower.includes('max')) return SERIES_GANCHO_SUGERIDAS['HBO Max'];
+    if (platLower.includes('apple')) return SERIES_GANCHO_SUGERIDAS['Apple TV+'];
+    if (platLower.includes('crunchy')) return SERIES_GANCHO_SUGERIDAS['Crunchyroll'];
+    if (platLower.includes('cine')) return SERIES_GANCHO_SUGERIDAS['Cine Star'];
+    if (platLower.includes('disney')) return SERIES_GANCHO_SUGERIDAS['Disney+'];
+    if (platLower.includes('netflix')) return SERIES_GANCHO_SUGERIDAS['Netflix'];
+    return ['The Last of Us', 'Silo', 'Solo Leveling', 'Shōgun'];
+  }, [activePlatformName]);
+
+  const todayStr = getToday().toISOString().split('T')[0];
+  const calculatedExpiryStr = addDaysToDate(todayStr, giftDays);
+
+  const previewMsg = useMemo(() => {
+    return buildEngancheConocidosMessage({
+      clientName: clientName.trim() || 'Amigo/a',
+      platformName: activePlatformName || 'HBO Max',
+      days: giftDays,
+      correo: activeCorreo || 'cuenta@ejemplo.com',
+      clave: activeClave || 'ClavePromo123',
+      perfil: assignedProfile || '1',
+      pin: assignedPin,
+      serieGancho,
+      headerIdx: headerSeed,
+      footerIdx: footerSeed
+    });
+  }, [clientName, activePlatformName, giftDays, activeCorreo, activeClave, assignedProfile, assignedPin, serieGancho, headerSeed, footerSeed]);
+
+  const handleEnviarCortesia = async () => {
+    if (!clientName.trim() || !clientPhone.trim()) {
+      showToast('Escribe o selecciona el nombre y WhatsApp del contacto', 'error');
+      return;
+    }
+    if (modoCuenta === 'guardada' && !currentMaster) {
+      showToast('Primero sube una cuenta en promoción o usa el modo Manual', 'error');
+      return;
+    }
+    if (modoCuenta === 'manual' && (!manualCorreo.trim() || !manualClave.trim())) {
+      showToast('Completa el correo y contraseña de la cuenta promocional', 'error');
+      return;
+    }
+
+    const nuevoRegistro = {
+      id: `C_${Date.now()}_ENG`,
+      nombre: clientName.trim(),
+      telefono: clientPhone.trim(),
+      servicio: `${activePlatformName} (Enganche ${giftDays}d)`,
+      categoria: 'streaming',
+      fechaInicio: todayStr,
+      fechaVencimiento: calculatedExpiryStr,
+      idIntegrante: integrantes[0]?.id || '',
+      idMaster: modoCuenta === 'guardada' && currentMaster ? currentMaster.id : '',
+      perfil: modoCuenta === 'guardada' ? (assignedProfile || '1') : '',
+      pin: assignedPin || '',
+      correoExterno: modoCuenta === 'manual' ? manualCorreo.trim() : '',
+      claveExterna: modoCuenta === 'manual' ? manualClave.trim() : '',
+      perfilExterno: modoCuenta === 'manual' ? `Perfil ${assignedProfile || '1'}` : '',
+      proveedorKey: '',
+      detallesLicencia: `Enganche Conocidos ${giftDays} días${serieGancho ? ` | Rec: ${serieGancho.trim()}` : ''}`
+    };
+
+    const msgToSend = previewMsg;
+    setClientes(prev => [nuevoRegistro, ...prev]);
+    showToast(`Cortesía de ${giftDays} días registrada para ${clientName.trim()}`);
+
+    // Rotación anti-spam automática para el siguiente contacto
+    setHeaderSeed(Math.floor(Math.random() * CABECERAS_ENGANCHE_CONOCIDOS.length));
+    setFooterSeed(Math.floor(Math.random() * CIERRES_ENGANCHE_CONOCIDOS.length));
+
+    window.open(`https://wa.me/${codigoPais}${clientPhone.trim()}?text=${encodeURIComponent(msgToSend)}`, '_blank');
+    await syncToSheets('guardarCliente', nuevoRegistro);
+  };
+
+  const handleSavePromoMaster = async (e) => {
+    e.preventDefault();
+    const isEditing = !!newPromoAcc.id;
+    const newId = isEditing ? newPromoAcc.id : `MPROMO_${Date.now()}`;
+    const obj = { ...newPromoAcc, id: newId };
+
+    if (isEditing) setCuentasMaster(prev => prev.map(m => m.id === newId ? obj : m));
+    else setCuentasMaster(prev => [obj, ...prev]);
+
+    setSelectedMasterId(newId);
+    setModoCuenta('guardada');
+    setAssignedProfile('1');
+    setNewPromoAcc({
+      id: null,
+      plataforma: 'HBO Max',
+      correo: '',
+      clave: '',
+      limitePerfiles: 5,
+      fechaRenovacion: addMonthsToDate(getToday().toISOString().split('T')[0], 1)
+    });
+    setIsCustomPromoPlat(false);
+    showToast(isEditing ? 'Cuenta promocional actualizada' : 'Cuenta promocional guardada en Sheets');
+    await syncToSheets('guardarMaster', obj);
+  };
+
+  const handleDeletePromoMaster = async (id) => {
+    setCuentasMaster(prev => prev.filter(m => m.id !== id));
+    showToast('Cuenta promocional eliminada');
+    await syncToSheets('eliminarMaster', { id });
+  };
+
+  // Seguimiento automático de contactos enganchados (Día 7 y Día 14)
+  const enganchadosList = useMemo(() => {
+    return clientes
+      .filter(c =>
+        String(c.servicio || '').includes('(Enganche') ||
+        String(c.detallesLicencia || '').includes('Enganche Conocidos') ||
+        String(c.id || '').endsWith('_ENG')
+      )
+      .sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
+  }, [clientes]);
+
+  const enviarSeguimientoDia7 = (c) => {
+    const platLimpia = String(c.servicio || 'Streaming').replace(/\s*\(Enganche.*?\)/i, '').trim();
+    const msg = `¡Hola *${c.nombre}*! 😊 ¿Pudiste entrar bien a *${platLimpia}*? Cualquier cosita si necesitas ayuda para ponerlo en tu TV o celu, me avisas con confianza. 🙌🍿`;
+    window.open(`https://wa.me/${codigoPais}${c.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const enviarSeguimientoDia14 = (c) => {
+    const platLimpia = String(c.servicio || 'Streaming').replace(/\s*\(Enganche.*?\)/i, '').trim();
+    const msg = `¡Hola *${c.nombre}*! 👋 Ya casi se cumplen los días de prueba de *${platLimpia}*. ¿Qué tal te pareció el servicio? 😊\n\nSi te gustó y quieres conservar tu perfil fijo (o prefieres Disney+, Netflix u otra opción de mi catálogo 👉 ${CATALOG_URL}), me avisas y te lo dejo activo con precio especial 😊🙌.`;
+    window.open(`https://wa.me/${codigoPais}${c.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* CABECERA */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider mb-2">
+            🚀 Plan 150 → 400 Clientes • 30 Mensajes Unificados Anti-Spam
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center">
+            <UserPlus className="w-8 h-8 mr-3 text-emerald-600" /> Enganche de Conocidos (15 Días Gratis)
+          </h1>
+          <p className="text-slate-500 mt-1 text-sm">
+            Regala 1 cortesía amigable a tus amigos, familiares y clientes de servicio técnico para engancharlos y llevarlos a tu nuevo catálogo web.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm gap-1">
+          <button
+            type="button"
+            onClick={() => setSubTab('enviar')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${subTab === 'enviar' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🎁 1. Enviar Cortesía ({CABECERAS_ENGANCHE_CONOCIDOS.length}x)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('seguimiento')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${subTab === 'seguimiento' ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            📅 2. Seguimiento Día 7 / 14 ({enganchadosList.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('cuentas')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${subTab === 'cuentas' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🗄️ 3. Cuentas Promo ({cuentasMaster.filter(m => String(m.id).startsWith('MPROMO_')).length})
+          </button>
+        </div>
+      </div>
+
+      {/* PESTAÑA 1: ENVIAR CORTESÍA */}
+      {subTab === 'enviar' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 space-y-5">
+            {/* PASO 1: CONTACTO */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <Smartphone className="w-5 h-5 mr-2 text-emerald-600" /> 1. ¿A quién le damos la cortesía hoy?
+                </h3>
+                <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  🎯 {prospectosBD.filter(p => !p.tieneStreaming).length} clientes PC/AV sin Streaming
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre (Amigo, familiar o cliente PC) *</label>
+                  <input
+                    type="text"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-emerald-500 outline-none font-bold"
+                    placeholder="Ej. Julio, Tío Carlos, Andrea..."
+                    value={clientName}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+                    onChange={(e) => { setClientName(e.target.value); setShowSuggestions(true); }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Tab' || e.key === 'Enter') && showSuggestions && sugerencias.length > 0) {
+                        e.preventDefault();
+                        setClientName(sugerencias[0].nombre);
+                        setClientPhone(sugerencias[0].telefono);
+                        setShowSuggestions(false);
+                      }
+                    }}
+                  />
+                  {showSuggestions && sugerencias.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border-2 border-emerald-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+                      {sugerencias.map(s => (
+                        <div
+                          key={s.id}
+                          onMouseDown={() => {
+                            setClientName(s.nombre);
+                            setClientPhone(s.telefono);
+                            setShowSuggestions(false);
+                          }}
+                          className="p-3 hover:bg-emerald-50 cursor-pointer border-b border-slate-100 flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-800">{s.nombre}</div>
+                            <div className="text-[10px] text-slate-400">
+                              {s.tieneStreaming ? '📺 Ya tiene Streaming' : `💻 Cliente ${s.categoria.toUpperCase()} (${s.servicio}) — SIN Streaming`}
+                            </div>
+                          </div>
+                          <span className="text-xs font-mono text-slate-500">+{s.telefono}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código de país) *</label>
+                  <input
+                    type="tel"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-emerald-500 outline-none font-mono font-bold"
+                    placeholder="999888777"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+
+              {/* SELECTOR 1 CLIC DE CLIENTES EN BASE QUE AÚN NO COMPRAN STREAMING */}
+              <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroSinStreaming(true)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors ${filtroSinStreaming ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      💻 Solo PC / Antivirus sin Streaming
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroSinStreaming(false)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors ${!filtroSinStreaming ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      🌐 Todos ({prospectosBD.length})
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Filtrar nombre..."
+                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1 outline-none focus:border-emerald-500"
+                    value={searchProspecto}
+                    onChange={(e) => setSearchProspecto(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                  {listaProspectosRapida.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setClientName(p.nombre);
+                        setClientPhone(p.telefono);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                        clientPhone === p.telefono
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
+                      }`}
+                    >
+                      {p.nombre} <span className="opacity-70 font-normal">({p.servicio})</span>
+                    </button>
+                  ))}
+                  {listaProspectosRapida.length === 0 && (
+                    <span className="text-xs text-slate-400">Puedes escribir arriba directamente el nombre y celular de cualquier amigo o familiar nuevo.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* PASO 2: CUENTA EN PROMOCIÓN */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <MonitorPlay className="w-5 h-5 mr-2 text-blue-600" /> 2. Cuenta de Cortesía (HBO, Apple TV+, Crunchyroll...)
+                </h3>
+                <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setModoCuenta('guardada')}
+                    className={`px-3 py-1 rounded-lg ${modoCuenta === 'guardada' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    Mis Cuentas ({cuentasDisponibles.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModoCuenta('manual')}
+                    className={`px-3 py-1 rounded-lg ${modoCuenta === 'manual' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+                  >
+                    Ingreso Rápido Manual
+                  </button>
+                </div>
+              </div>
+
+              {modoCuenta === 'guardada' ? (
+                cuentasDisponibles.length === 0 ? (
+                  <div className="p-5 bg-blue-50 border-2 border-blue-200 border-dashed rounded-2xl text-center space-y-2">
+                    <p className="text-sm font-bold text-blue-900">Aún no tienes cuentas cargadas en tu bóveda.</p>
+                    <button
+                      type="button"
+                      onClick={() => setSubTab('cuentas')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black shadow"
+                    >
+                      + Subir Cuenta Promo (HBO / Apple TV+ / Crunchyroll)
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    className="w-full border-2 border-blue-200 rounded-xl p-3 font-bold bg-blue-50/40 text-slate-800 outline-none focus:border-blue-500"
+                    value={currentMaster?.id || ''}
+                    onChange={(e) => {
+                      const mId = e.target.value;
+                      setSelectedMasterId(mId);
+                      setAssignedProfile(calcularPerfilLibre(mId));
+                    }}
+                  >
+                    {cuentasDisponibles.map(m => {
+                      const ocupados = clientes.filter(c => c.idMaster === m.id && getDaysRemaining(c.fechaVencimiento) >= 0).length;
+                      const limit = parseInt(m.limitePerfiles, 10) || 5;
+                      const tag = String(m.id).startsWith('MPROMO_') ? '🎁 PROMO' : String(m.id).startsWith('MVIP_') ? '👑 VIP' : '📺 MÁSTER';
+                      return (
+                        <option key={m.id} value={m.id}>
+                          {tag} • {m.plataforma} — {m.correo} (Libres: {Math.max(0, limit - ocupados)}/{limit})
+                        </option>
+                      );
+                    })}
+                  </select>
+                )
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Plataforma</label>
+                    <select
+                      className="w-full border-2 border-slate-200 rounded-xl p-2.5 font-bold bg-white text-sm"
+                      value={manualPlatform}
+                      onChange={(e) => setManualPlatform(e.target.value)}
+                    >
+                      <option value="HBO Max">HBO Max</option>
+                      <option value="Apple TV+">Apple TV+</option>
+                      <option value="Crunchyroll">Crunchyroll</option>
+                      <option value="Cine Star">Cine Star</option>
+                      <option value="Disney+">Disney+</option>
+                      <option value="Netflix">Netflix</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Correo *</label>
+                    <input
+                      type="email"
+                      className="w-full border-2 border-slate-200 rounded-xl p-2.5 text-sm font-medium"
+                      placeholder="correo@promo.com"
+                      value={manualCorreo}
+                      onChange={(e) => setManualCorreo(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Contraseña *</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-slate-200 rounded-xl p-2.5 text-sm font-medium"
+                      placeholder="Clave123"
+                      value={manualClave}
+                      onChange={(e) => setManualClave(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Nº de Perfil</label>
+                  <input
+                    type="text"
+                    className="w-full border-2 border-slate-200 rounded-xl p-2.5 font-bold bg-slate-50"
+                    value={assignedProfile}
+                    onChange={(e) => setAssignedProfile(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">PIN (Opcional)</label>
+                  <input
+                    type="text"
+                    className="w-full border-2 border-slate-200 rounded-xl p-2.5 font-bold bg-slate-50"
+                    placeholder="Vacío si no usa"
+                    value={assignedPin}
+                    onChange={(e) => setAssignedPin(e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Días de Cortesía</label>
+                  <div className="flex gap-1">
+                    {[10, 15, 30].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setGiftDays(d)}
+                        className={`flex-1 py-2.5 rounded-xl font-black text-xs border-2 ${giftDays === d ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-700 border-slate-200'}`}
+                      >
+                        {d}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PASO 3: SERIE / PELÍCULA RECOMENDADA (GANCHO OPCIONAL) */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                  <Star className="w-5 h-5 mr-2 text-amber-500" /> 3. Serie o Película Recomendada (Opcional para enganchar)
+                </h3>
+                {serieGancho && (
+                  <button type="button" onClick={() => setSerieGancho('')} className="text-xs font-bold text-slate-400 hover:text-red-500">
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                className="w-full border-2 border-amber-200 rounded-xl p-3 bg-amber-50/30 focus:bg-white focus:border-amber-500 outline-none text-sm font-bold"
+                placeholder="Ej. Te recomiendo empezar viendo The Last of Us o Silo..."
+                value={serieGancho}
+                onChange={(e) => setSerieGancho(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {sugerenciasSeries.map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSerieGancho(s)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${serieGancho === s ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'}`}
+                  >
+                    🎬 {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* VISTA PREVIA EN VIVO + BOTÓN ENVIAR */}
+          <div className="lg:col-span-5">
+            <div className="bg-[#070818] text-white p-6 rounded-3xl shadow-xl border-2 border-emerald-500/40 flex flex-col h-full justify-between space-y-5">
+              <div>
+                <div className="flex justify-between items-center gap-2 mb-4">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 block">
+                      30 Mensajes Unificados Anti-Spam
+                    </span>
+                    <h3 className="text-lg font-bold">Vista Previa WhatsApp</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeaderSeed(prev => (prev + 1) % CABECERAS_ENGANCHE_CONOCIDOS.length);
+                      setFooterSeed(prev => (prev + 1) % CIERRES_ENGANCHE_CONOCIDOS.length);
+                    }}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-emerald-300 rounded-xl text-xs font-bold flex items-center border border-emerald-400/30"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Rotar ({headerSeed + 1}/30)
+                  </button>
+                </div>
+
+                <div className="bg-emerald-950/60 border border-emerald-700/60 rounded-2xl p-4 font-sans text-xs text-emerald-50 whitespace-pre-wrap max-h-[430px] overflow-y-auto leading-relaxed">
+                  {previewMsg}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-xs bg-white/5 px-3.5 py-2.5 rounded-xl border border-white/10">
+                  <span className="text-slate-300">Vence en tu control el:</span>
+                  <span className="font-black text-cyan-300">{formatDateToLocal(calculatedExpiryStr)} ({giftDays} días)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleEnviarCortesia}
+                  disabled={syncStatus === 'sincronizando' || !clientPhone.trim() || !clientName.trim()}
+                  className="w-full py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-40 text-slate-950 font-black rounded-2xl shadow-lg flex items-center justify-center text-sm sm:text-base transition-colors"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" /> Registrar {giftDays} Días y Enviar por WhatsApp
+                </button>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Incluye automáticamente tu nuevo catálogo oficial <strong>kgb-streaming.vercel.app</strong> y rota entre 30 saludos amigables distintos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA 2: SEGUIMIENTO DÍA 7 Y DÍA 14 */}
+      {subTab === 'seguimiento' && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-black text-slate-800 text-lg">Seguimiento Suave de Enganchados (Día 7 y Día 14)</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                A mitad de prueba envíales el saludo de Día 7, y cuando estén por cumplir los 15 días envíales el cierre suave de Día 14 con tu catálogo.
+              </p>
+            </div>
+            <span className="px-3 py-1.5 bg-blue-100 text-blue-800 font-black text-xs rounded-full w-fit">
+              {enganchadosList.length} Cortesías Activas / Registradas
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase">
+                <tr>
+                  <th className="px-6 py-4">Conocido / Cliente</th>
+                  <th className="px-6 py-4">Plataforma de Cortesía</th>
+                  <th className="px-6 py-4">Avance / Vencimiento</th>
+                  <th className="px-6 py-4 text-right">Seguimiento 1 Clic</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {enganchadosList.map(c => {
+                  const daysLeft = getDaysRemaining(c.fechaVencimiento);
+                  const inicioDate = parseDateString(c.fechaInicio) || getToday();
+                  const diasTranscurridos = Math.max(1, Math.floor((getToday() - inicioDate) / (1000 * 60 * 60 * 24)) + 1);
+                  const masterObj = cuentasMaster.find(m => m.id === c.idMaster);
+
+                  return (
+                    <tr key={c.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-800">{c.nombre}</div>
+                        <div className="text-xs text-slate-500">+{c.telefono}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-emerald-700">{c.servicio}</div>
+                        <div className="text-xs text-slate-500 font-mono">
+                          {masterObj ? `${masterObj.correo} (P${c.perfil || '1'})` : `${c.correoExterno || 'Manual'} ${c.perfilExterno || ''}`}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-700">Día {diasTranscurridos} • Vence {formatDateToLocal(c.fechaVencimiento)}</div>
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${daysLeft < 0 ? 'bg-red-100 text-red-800' : daysLeft <= 2 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {daysLeft < 0 ? `Terminó hace ${Math.abs(daysLeft)}d` : `Quedan ${daysLeft} días`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => enviarSeguimientoDia7(c)}
+                            className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold rounded-xl text-xs inline-flex items-center"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 mr-1" /> Día 7 (¿Todo bien?)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => enviarSeguimientoDia14(c)}
+                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs inline-flex items-center shadow-sm"
+                          >
+                            <Star className="w-3.5 h-3.5 mr-1" /> Día 14 (Cerrar Venta)
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {enganchadosList.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-10 text-center text-slate-400 font-medium">
+                      Aún no has enviado cortesías desde Enganche de Conocidos. ¡Envía la primera desde la pestaña 1!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA 3: SUBIR CUENTAS EN PROMOCIÓN GRATIS */}
+      {subTab === 'cuentas' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-200">
+            <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center">
+              <Plus className="w-5 h-5 mr-2 text-emerald-600" /> Subir Cuenta Promocional para Enganche (Apple TV+, HBO Max, Crunchyroll, Cine Star)
+            </h3>
+            <form onSubmit={handleSavePromoMaster} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 items-end">
+              <div className="xl:col-span-1">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Plataforma</label>
+                {!isCustomPromoPlat ? (
+                  <select
+                    className="w-full border-2 border-emerald-200 rounded-xl p-3 font-bold bg-white"
+                    value={newPromoAcc.plataforma}
+                    onChange={(e) => {
+                      if (e.target.value === 'OTRA') {
+                        setIsCustomPromoPlat(true);
+                        setNewPromoAcc({ ...newPromoAcc, plataforma: '' });
+                      } else {
+                        setNewPromoAcc({ ...newPromoAcc, plataforma: e.target.value });
+                      }
+                    }}
+                  >
+                    <option value="HBO Max">HBO Max</option>
+                    <option value="Apple TV+">Apple TV+</option>
+                    <option value="Crunchyroll">Crunchyroll</option>
+                    <option value="Cine Star">Cine Star</option>
+                    <option value="Disney+">Disney+</option>
+                    <option value="Paramount+">Paramount+</option>
+                    <option value="OTRA">➕ Otra plataforma...</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="Plataforma..."
+                    className="w-full border-2 border-emerald-200 rounded-xl p-3 font-bold"
+                    value={newPromoAcc.plataforma}
+                    onChange={(e) => setNewPromoAcc({ ...newPromoAcc, plataforma: e.target.value })}
+                  />
+                )}
+              </div>
+              <div className="xl:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Correo de la Cuenta *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="ejemplo@promo.com"
+                  className="w-full border-2 border-slate-200 rounded-xl p-3 font-medium"
+                  value={newPromoAcc.correo}
+                  onChange={(e) => setNewPromoAcc({ ...newPromoAcc, correo: e.target.value })}
+                />
+              </div>
+              <div className="xl:col-span-1">
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Contraseña *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Clave123"
+                  className="w-full border-2 border-slate-200 rounded-xl p-3 font-medium"
+                  value={newPromoAcc.clave}
+                  onChange={(e) => setNewPromoAcc({ ...newPromoAcc, clave: e.target.value })}
+                />
+              </div>
+              <div className="xl:col-span-1 flex gap-2">
+                <div className="w-1/2">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Perfiles</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold"
+                    value={newPromoAcc.limitePerfiles}
+                    onChange={(e) => setNewPromoAcc({ ...newPromoAcc, limitePerfiles: e.target.value })}
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Vence</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold text-xs"
+                    value={newPromoAcc.fechaRenovacion}
+                    onChange={(e) => setNewPromoAcc({ ...newPromoAcc, fechaRenovacion: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="xl:col-span-1">
+                <button
+                  type="submit"
+                  disabled={syncStatus === 'sincronizando'}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl p-3 shadow-lg flex justify-center items-center disabled:opacity-50"
+                >
+                  <Plus className="w-5 h-5 mr-1.5" /> {newPromoAcc.id ? 'Actualizar' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {cuentasMaster.filter(m => String(m.id).startsWith('MPROMO_')).map(master => {
+              const activos = clientes.filter(c => c.idMaster === master.id && getDaysRemaining(c.fechaVencimiento) >= 0).length;
+              const limit = parseInt(master.limitePerfiles, 10) || 5;
+              const isFull = activos >= limit;
+              return (
+                <div key={master.id} className="p-5 rounded-2xl bg-white border-2 border-emerald-200 shadow-sm flex flex-col justify-between space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-black uppercase">
+                        🎁 Cuenta Promo Enganche
+                      </span>
+                      <div className="font-black text-slate-800 text-lg mt-1">{master.plataforma}</div>
+                      <div className="font-mono text-xs text-slate-600 mt-0.5">👤 {master.correo}</div>
+                      <div className="font-mono text-xs text-slate-500">🔑 {master.clave}</div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <button onClick={() => setNewPromoAcc(master)} className="p-2 text-slate-400 hover:text-blue-600"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeletePromoMaster(master.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex justify-between text-xs font-bold text-slate-600 mb-1.5">
+                      <span>Cupos de Prueba Ocupados</span>
+                      <span className={isFull ? 'text-red-600' : 'text-emerald-600'}>{activos} / {limit}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div className={`h-full rounded-full ${isFull ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, (activos / limit) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMasterId(master.id);
+                      setModoCuenta('guardada');
+                      setAssignedProfile(calcularPerfilLibre(master.id));
+                      setSubTab('enviar');
+                    }}
+                    className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs transition-colors"
+                  >
+                    🎁 Usar para enganchar conocidos ahora
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
 // 5. APLICACIÓN PRINCIPAL (ESTADOS Y LÓGICA)
 // ==========================================
 export default function App() {
@@ -3584,20 +4526,9 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen w-full bg-[#040511] items-center justify-center font-sans text-slate-300 relative overflow-hidden px-4">
-        <div className="absolute -left-24 top-1/4 w-72 h-72 sm:w-[550px] sm:h-[550px] bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute -right-24 bottom-1/4 w-72 h-72 sm:w-[550px] sm:h-[550px] bg-fuchsia-600/20 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f2fe10_1px,transparent_1px),linear-gradient(to_bottom,#d946ef10_1px,transparent_1px)] bg-[size:28px_28px]"></div>
-        {/* Sello de agua transparente en la pantalla de acceso */}
-        <img
-          src={LOGO_URL}
-          alt=""
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 m-auto w-72 h-72 sm:w-[500px] sm:h-[500px] object-contain opacity-[0.06] pointer-events-none select-none"
-        />
-
-        <div className="relative z-10 w-full max-w-md p-2 sm:p-8 animate-fadeIn">
-          <div className="bg-[#080a1c]/90 backdrop-blur-xl border-2 border-cyan-400/30 p-6 sm:p-8 rounded-3xl shadow-[0_0_50px_rgba(0,240,255,0.22)] flex flex-col items-center relative overflow-hidden">
+      <div className="flex min-h-screen w-full bg-[#040511] items-center justify-center font-sans text-slate-300 relative overflow-hidden px-4">
+        <div className="relative z-10 w-full max-w-md p-2 sm:p-8">
+          <div className="bg-[#080a1c] border-2 border-cyan-400/30 p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col items-center relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500"></div>
 
             <div className="mb-5 relative">
@@ -3620,14 +4551,14 @@ export default function App() {
               <div className="relative">
                 <Lock className="w-5 h-5 absolute left-4 top-3.5 text-cyan-400" />
                 <input type="password" autoFocus disabled={isAuthenticating} placeholder="Ingrese su contraseña" 
-                  className={`w-full bg-[#040511] border-2 ${loginError ? 'border-red-500 focus:border-red-500' : 'border-cyan-500/30 focus:border-fuchsia-500'} rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all font-mono tracking-widest shadow-inner`}
+                  className={`w-full bg-[#040511] border-2 ${loginError ? 'border-red-500 focus:border-red-500' : 'border-cyan-500/30 focus:border-fuchsia-500'} rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-colors font-mono tracking-widest`}
                   value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)}
                 />
                 {loginError && <p className="text-xs text-red-400 font-bold mt-2 absolute -bottom-5 left-1">Contraseña incorrecta, acceso denegado.</p>}
               </div>
 
               <button type="submit" disabled={isAuthenticating || !passwordInput}
-                className="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-xl py-3.5 transition-all flex items-center justify-center shadow-[0_0_25px_rgba(0,240,255,0.35)] uppercase tracking-wider text-sm"
+                className="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-xl py-3.5 transition-colors flex items-center justify-center shadow-lg uppercase tracking-wider text-sm"
               >
                 {isAuthenticating ? <>Iniciando Sistema <Loader2 className="w-5 h-5 ml-2 animate-spin" /></> : <>Entrar al Panel <Terminal className="w-5 h-5 ml-2" /></>}
               </button>
@@ -3642,13 +4573,12 @@ export default function App() {
   return (
     <>
       <style>{`
-        .animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { opacity: 1; }
       `}</style>
-      <div className="flex h-screen w-full bg-[#f3f5fb] font-sans text-slate-900 overflow-hidden">
+      <div className="flex h-screen w-full bg-[#f3f5fb] font-sans text-slate-900 overflow-hidden overscroll-none">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} setIsAuthenticated={setIsAuthenticated} />
         <div className="flex-1 flex flex-col h-full min-w-0 w-full overflow-hidden">
-          <header className="bg-[#080a1c] text-white shadow-[0_4px_20px_rgba(0,240,255,0.12)] border-b border-cyan-500/30 px-3 sm:px-6 py-3 flex justify-between items-center z-10 relative">
+          <header className="bg-[#080a1c] text-white shadow-md border-b border-cyan-500/30 px-3 sm:px-6 py-3 flex justify-between items-center z-10 relative">
             <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500"></div>
             <div className="flex items-center min-w-0">
               <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mr-2.5 text-cyan-400 hover:bg-white/10 p-1.5 rounded-lg flex-shrink-0"><Menu className="w-6 h-6" /></button>
@@ -3662,20 +4592,22 @@ export default function App() {
               <SyncIndicator />
             </div>
           </header>
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-slate-100 to-fuchsia-500/5 relative">
-            {/* Sello de agua central transparente adaptado a celular y PC */}
-            <div className="fixed inset-0 md:left-64 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-8 bg-[#f3f5fb] relative">
+            {/* Sello de agua ligero solo en pantallas grandes para evitar parpadeos de GPU en Android */}
+            <div className="hidden md:flex fixed inset-0 left-64 items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
               <img
                 src={LOGO_URL}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-64 h-64 sm:w-96 sm:h-96 md:w-[480px] md:h-[480px] object-contain opacity-[0.05] filter drop-shadow-[0_0_20px_rgba(0,240,255,0.15)]"
+                decoding="async"
+                className="w-[420px] h-[420px] object-contain opacity-[0.04]"
               />
             </div>
             <div className="max-w-7xl mx-auto h-full relative z-10">
               {activeTab === 'dashboard' && <Dashboard stats={stats} urgentClients={urgentClients} setWaActionModal={setWaActionModal} processedClients={processedClients} stockAV={stockAV} handleGiveGift={handleGiveGift} setActiveTab={setActiveTab} showToast={showToast} />}
               {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'regalos_vip' && <RegalosVipHboView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} plantillas={plantillas} setPlantillas={setPlantillas} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
+              {activeTab === 'enganche_conocidos' && <EngancheConocidosView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'software' && <SoftwareList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
