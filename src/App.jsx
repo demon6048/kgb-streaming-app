@@ -437,6 +437,35 @@ const buildEngancheConocidosMessage = ({
 };
 
 // ==========================================
+// 2.4 MOTOR ANTI-SPAM PARA AGRADECIMIENTO POR RECOMENDACIÓN (10 MENSAJES GENÉRICOS)
+// ==========================================
+const MENSAJES_AGRADECIMIENTO_RECOMENDADOS = [
+  "¡Hola *{nombre}*! 🙌✨ Te escribo súper agradecido porque la persona que nos recomendaste ya activó su cuenta con nosotros hoy. Como agradecimiento por tu confianza, te regalamos *1 MES GRATIS* a tu elección entre *Disney+*, *HBO Max* o *Amazon Prime* 🎁. Dime cuál prefieres y te la activo ahorita mismo 😊💙.",
+  "¡Qué tal, *{nombre}*! 🌟 Paso a darte una excelente noticia y agradecerte de corazón: tu recomendado ya activó su cuenta en *{negocio}* 🎉. Por hablar tan bien de nuestro trabajo, te has ganado *1 MES TOTALMENTE GRATIS* de *Disney+*, *HBO Max* o *Amazon Prime* (tú eliges cuál quieres). ¡Avísame y te paso los accesos de inmediato! 🙌🍿",
+  "¡Hola *{nombre}*! 😊💙 Muchas gracias por recomendarnos; la persona que vino de tu parte ya está disfrutando su cuenta con nosotros. En *{negocio}* siempre premiamos la lealtad, así que quiero obsequiarte *1 MES GRATIS* en *Disney+*, *HBO Max* o *Amazon Prime* 🎁. Cuéntame cuál eliges para activártela hoy mismo.",
+  "¡Saludos, *{nombre}*! ✨ Qué alegría escribirte hoy: gracias a tu recomendación, un nuevo cliente ya activó su cuenta con nosotros 🚀. Como muestra de agradecimiento, tienes *1 MES DE REGALO* en la plataforma que prefieras: *Disney+*, *HBO Max* o *Amazon Prime* 🎬. ¡Solo dime cuál deseas y listo! Y recuerda que por cada recomendado que active su cuenta, siempre tienes premio 😉.",
+  "¡Hola, qué tal *{nombre}*! 🙌 Paso rapidito a darte mil gracias porque tu recomendado acaba de activar su servicio con nosotros 🔥. Para engreírte como mereces, quiero regalarte *1 MES GRATIS* a tu elección entre *Disney+*, *HBO Max* o *Amazon Prime* 🎁. ¿Cuál te gustaría recibir hoy? 😊",
+  "¡Buen día, *{nombre}*! 🌟 Te saludo con muchísimo agradecimiento porque la persona que nos referiste ya activó su cuenta en *{negocio}* 💙. Por ese gran apoyo, te corresponde un regalo de *1 MES GRATIS* en *Disney+*, *HBO Max* o *Amazon Prime* 🍿. Escríbeme cuál eliges y te envío tus credenciales al instante.",
+  "¡Hola *{nombre}*! 🎉 ¡Buenas noticias! La persona que recomendaste ya activó su cuenta con nosotros y quería agradecerte personalmente por la confianza 🙌. Como premio, te regalamos *1 MES SIN COSTO* de *Disney+*, *HBO Max* o *Amazon Prime* 🎁. Dime cuál te provoca ver este mes y te la dejo lista en minutos 😊✨.",
+  "¡Qué gusto saludarte, *{nombre}*! 💙 Te cuento que tu recomendado ya activó su cuenta hoy en *{negocio}*, ¡mil gracias por recomendarnos! 🌟 Para retribuir ese detalle, puedes elegir *1 MES GRATIS* entre *Disney+*, *HBO Max* o *Amazon Prime* 🎬. Solo dime tu favorita y te mando el acceso de una vez.",
+  "¡Hola *{nombre}*! 🚀 En *{negocio}* valoramos muchísimo a quienes nos recomiendan, y hoy la persona que enviaste ya activó su cuenta con nosotros 🙌. Por eso te has ganado *1 MES COMPLETAMENTE GRATIS* de *Disney+*, *HBO Max* o *Amazon Prime* 🎁. ¿Cuál de las tres quieres que te active hoy? 😊🍿",
+  "¡Hola, *{nombre}*! ✨ De todo corazón, gracias por confiar en nuestro servicio y recomendarnos: tu referido ya activó su cuenta hoy 💙. Como agradecimiento especial, te regalamos *1 MES GRATIS* a escoger entre *Disney+*, *HBO Max* o *Amazon Prime* 🎁. Cuéntame cuál prefieres para activártela ahorita mismo. ¡Cada vez que nos recomiendes a alguien, siempre tendrás tu regalo asegurado! 🙌"
+];
+
+const buildAgradecimientoRecomendadoMessage = ({ clientName, msgIdx = null }) => {
+  const nombreFinal = clientName || 'Amigo/a';
+  const idx = msgIdx !== null
+    ? (Math.abs(msgIdx) % MENSAJES_AGRADECIMIENTO_RECOMENDADOS.length)
+    : Math.floor(Math.random() * MENSAJES_AGRADECIMIENTO_RECOMENDADOS.length);
+
+  const cuerpo = MENSAJES_AGRADECIMIENTO_RECOMENDADOS[idx]
+    .replace(/{nombre}/gi, nombreFinal)
+    .replace(/{negocio}/gi, parametros.nombreNegocio);
+
+  return `${cuerpo}${getCatalogSignature(idx)}`;
+};
+
+// ==========================================
 // 3. COMPONENTES DE INTERFAZ (UI)
 // ==========================================
 const KgbNeonLogo = ({ size = 'md', showText = false }) => {
@@ -564,6 +593,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen, activeTab, setActiveTa
         <button onClick={() => { setActiveTab('campanas'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'campanas' ? 'bg-gradient-to-r from-fuchsia-600/20 to-purple-600/20 text-pink-300 font-black border border-pink-400/40 shadow-[0_0_15px_rgba(236,72,153,0.2)]' : 'hover:bg-white/5 hover:text-pink-200'}`}><Gift className="w-5 h-5 mr-3 text-pink-400" /> Campañas y Regalos</button>
         <button onClick={() => { setActiveTab('regalos_vip'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'regalos_vip' ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-600/25 to-fuchsia-600/25 text-cyan-200 font-black border border-cyan-400/40 shadow-[0_0_18px_rgba(168,85,247,0.25)]' : 'hover:bg-white/5 hover:text-indigo-200'}`}><Gift className="w-5 h-5 mr-3 text-cyan-400" /> Regalos VIP (HBO)</button>
         <button onClick={() => { setActiveTab('enganche_conocidos'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'enganche_conocidos' ? 'bg-gradient-to-r from-emerald-500/25 via-cyan-500/20 to-blue-600/25 text-emerald-300 font-black border border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.25)]' : 'hover:bg-white/5 hover:text-emerald-200'}`}><UserPlus className="w-5 h-5 mr-3 text-emerald-400" /> Enganche Conocidos</button>
+        <button onClick={() => { setActiveTab('recomendados'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'recomendados' ? 'bg-gradient-to-r from-amber-500/25 via-fuchsia-500/20 to-pink-600/25 text-amber-300 font-black border border-amber-400/50 shadow-[0_0_18px_rgba(245,158,11,0.25)]' : 'hover:bg-white/5 hover:text-amber-200'}`}><Star className="w-5 h-5 mr-3 text-amber-400" /> Agradecer Recomendados</button>
 
         <div className="text-[11px] font-black text-fuchsia-400/70 uppercase tracking-widest mb-2 px-3 mt-6">Servicios y Licencias</div>
         <button onClick={() => { setActiveTab('streaming'); setIsMobileMenuOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${activeTab === 'streaming' ? 'bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 font-black border border-cyan-400/40 shadow-[0_0_15px_rgba(0,242,254,0.2)]' : 'hover:bg-white/5 hover:text-cyan-200'}`}><MonitorPlay className="w-5 h-5 mr-3 text-cyan-400" /> Streaming</button>
@@ -3681,6 +3711,622 @@ const EngancheConocidosView = ({
 };
 
 // ==========================================
+// 4.4 NUEVO MÓDULO: AGRADECIMIENTO POR RECOMENDACIÓN (10 MENSAJES ANTI-SPAM + 1 MES GRATIS)
+// ==========================================
+const AgradecerRecomendadosView = ({
+  cuentasMaster,
+  clientes,
+  setClientes,
+  integrantes,
+  codigoPais,
+  showToast,
+  syncToSheets,
+  syncStatus
+}) => {
+  const [subTab, setSubTab] = useState('agradecer'); // 'agradecer' | 'entregar' | 'historial'
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [referidoNombre, setReferidoNombre] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchClientRapido, setSearchClientRapido] = useState('');
+  const [msgSeed, setMsgSeed] = useState(() => Math.floor(Math.random() * MENSAJES_AGRADECIMIENTO_RECOMENDADOS.length));
+
+  // Estado para entregar el mes gratis (Disney+, HBO Max o Amazon Prime)
+  const [premioPlataforma, setPremioPlataforma] = useState('Disney+');
+  const [modoCuenta, setModoCuenta] = useState('master'); // 'master' | 'manual'
+  const [selectedMasterId, setSelectedMasterId] = useState('');
+  const [manualCorreo, setManualCorreo] = useState('');
+  const [manualClave, setManualClave] = useState('');
+  const [assignedProfile, setAssignedProfile] = useState('1');
+  const [assignedPin, setAssignedPin] = useState('');
+
+  const clientesUnicos = useMemo(() => {
+    const map = new Map();
+    clientes.forEach(c => {
+      const tel = String(c.telefono || '').trim();
+      if (tel && c.nombre && !map.has(tel)) {
+        map.set(tel, { id: c.id, nombre: c.nombre, telefono: tel, servicio: c.servicio });
+      }
+    });
+    return Array.from(map.values());
+  }, [clientes]);
+
+  const sugerencias = useMemo(() => {
+    const term = clientName.trim().toLowerCase();
+    if (!term) return clientesUnicos.slice(0, 15);
+    return clientesUnicos.filter(c =>
+      c.nombre.toLowerCase().includes(term) || c.telefono.includes(term)
+    ).slice(0, 15);
+  }, [clientesUnicos, clientName]);
+
+  const listaRapida = useMemo(() => {
+    const term = searchClientRapido.trim().toLowerCase();
+    return clientesUnicos
+      .filter(c => !term || c.nombre.toLowerCase().includes(term) || c.telefono.includes(term))
+      .slice(0, 14);
+  }, [clientesUnicos, searchClientRapido]);
+
+  const calcularPerfilLibre = useCallback((masterId) => {
+    if (!masterId) return '1';
+    const ocupados = clientes
+      .filter(c => c.idMaster === masterId && getDaysRemaining(c.fechaVencimiento) >= 0)
+      .map(c => parseInt(c.perfil, 10))
+      .filter(n => !isNaN(n));
+    let sig = 1;
+    while (ocupados.includes(sig)) sig++;
+    return String(sig);
+  }, [clientes]);
+
+  // Cuentas máster priorizando la plataforma elegida (Disney+, HBO Max o Amazon Prime)
+  const mastersOrdenadas = useMemo(() => {
+    const keyPlat = premioPlataforma.toLowerCase().split(' ')[0].replace('+', '');
+    const exactas = cuentasMaster.filter(m => String(m.plataforma || '').toLowerCase().includes(keyPlat));
+    const resto = cuentasMaster.filter(m => !String(m.plataforma || '').toLowerCase().includes(keyPlat));
+    return [...exactas, ...resto];
+  }, [cuentasMaster, premioPlataforma]);
+
+  useEffect(() => {
+    if (mastersOrdenadas.length > 0) {
+      const keyPlat = premioPlataforma.toLowerCase().split(' ')[0].replace('+', '');
+      const preferida = mastersOrdenadas.find(m => String(m.plataforma || '').toLowerCase().includes(keyPlat)) || mastersOrdenadas[0];
+      if (preferida) {
+        setSelectedMasterId(preferida.id);
+        setAssignedProfile(calcularPerfilLibre(preferida.id));
+      }
+    }
+  }, [premioPlataforma, mastersOrdenadas, calcularPerfilLibre]);
+
+  const currentMaster = cuentasMaster.find(m => m.id === selectedMasterId) || mastersOrdenadas[0] || null;
+  const todayStr = getToday().toISOString().split('T')[0];
+  const expiryOneMonthStr = addMonthsToDate(todayStr, 1);
+
+  const previewAgradecimiento = useMemo(() => {
+    return buildAgradecimientoRecomendadoMessage({
+      clientName: clientName.trim() || 'Michelle',
+      msgIdx: msgSeed
+    });
+  }, [clientName, msgSeed]);
+
+  const handleEnviarAgradecimientoWA = () => {
+    if (!clientName.trim() || !clientPhone.trim()) {
+      showToast('Escribe o selecciona el nombre y WhatsApp de quien te recomendó', 'error');
+      return;
+    }
+    const msg = previewAgradecimiento;
+    setMsgSeed(prev => (prev + 1) % MENSAJES_AGRADECIMIENTO_RECOMENDADOS.length);
+    window.open(`https://wa.me/${codigoPais}${clientPhone.trim()}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const handleActivarPremioUnMes = async () => {
+    if (!clientName.trim() || !clientPhone.trim()) {
+      showToast('Completa el nombre y WhatsApp de quien recibe el premio', 'error');
+      return;
+    }
+    if (modoCuenta === 'master' && !currentMaster) {
+      showToast('No tienes cuentas máster guardadas; cambia a Ingreso Rápido Manual', 'error');
+      return;
+    }
+    if (modoCuenta === 'manual' && (!manualCorreo.trim() || !manualClave.trim())) {
+      showToast('Ingresa el correo y contraseña de la cuenta de premio', 'error');
+      return;
+    }
+
+    const correoFinal = modoCuenta === 'master' ? currentMaster.correo : manualCorreo.trim();
+    const claveFinal = modoCuenta === 'master' ? currentMaster.clave : manualClave.trim();
+
+    const nuevoPremio = {
+      id: `C_${Date.now()}_REC`,
+      nombre: clientName.trim(),
+      telefono: clientPhone.trim(),
+      servicio: `${premioPlataforma} (Premio Recomendación)`,
+      categoria: 'streaming',
+      fechaInicio: todayStr,
+      fechaVencimiento: expiryOneMonthStr,
+      idIntegrante: integrantes[0]?.id || '',
+      idMaster: modoCuenta === 'master' && currentMaster ? currentMaster.id : '',
+      perfil: modoCuenta === 'master' ? (assignedProfile || '1') : '',
+      pin: assignedPin || '',
+      correoExterno: modoCuenta === 'manual' ? correoFinal : '',
+      claveExterna: modoCuenta === 'manual' ? claveFinal : '',
+      perfilExterno: modoCuenta === 'manual' ? `Perfil ${assignedProfile || '1'}` : '',
+      proveedorKey: '',
+      detallesLicencia: `Premio 1 Mes Recomendación${referidoNombre.trim() ? ` | Recomendó a: ${referidoNombre.trim()}` : ''}`
+    };
+
+    let msgEntrega = `¡Hola *${clientName.trim()}*! 🎉💙 Aquí tienes tu *1 MES GRATIS* de *${premioPlataforma}* como agradecimiento por recomendarnos en *${parametros.nombreNegocio}* 🙌:\n\n`;
+    msgEntrega += `🎬 *TUS ACCESOS DE REGALO (${premioPlataforma.toUpperCase()}):*\n`;
+    msgEntrega += `👤 *Correo:* ${correoFinal}\n`;
+    msgEntrega += `🔑 *Contraseña:* ${claveFinal}\n`;
+    msgEntrega += `📺 *Perfil Asignado:* Perfil ${assignedProfile || '1'}\n`;
+    if (assignedPin && assignedPin.trim() !== '') {
+      msgEntrega += `🔐 *PIN:* ${assignedPin.trim()}\n`;
+    }
+    msgEntrega += `📅 *Válido hasta:* ${formatDateToLocal(expiryOneMonthStr)}\n\n`;
+    msgEntrega += `¡Que lo disfrutes muchísimo! Y recuerda que cada vez que recomiendes a alguien y active su cuenta, vuelves a ganar 1 mes gratis 🎁✨.${getCatalogSignature()}`;
+
+    setClientes(prev => [nuevoPremio, ...prev]);
+    showToast(`¡Premio de 1 mes en ${premioPlataforma} registrado para ${clientName.trim()}!`);
+    window.open(`https://wa.me/${codigoPais}${clientPhone.trim()}?text=${encodeURIComponent(msgEntrega)}`, '_blank');
+    await syncToSheets('guardarCliente', nuevoPremio);
+  };
+
+  const historialPremiados = useMemo(() => {
+    return clientes
+      .filter(c =>
+        String(c.servicio || '').includes('(Premio Recomendación)') ||
+        String(c.detallesLicencia || '').includes('Premio 1 Mes Recomendación') ||
+        String(c.id || '').endsWith('_REC')
+      )
+      .sort((a, b) => String(b.fechaInicio || '').localeCompare(String(a.fechaInicio || '')));
+  }, [clientes]);
+
+  const enviarOfertaRenovacionPremio = (c) => {
+    const platLimpia = String(c.servicio || 'Streaming').replace(/\s*\(Premio Recomendación\)/i, '').trim();
+    const msg = `¡Hola *${c.nombre}*! 😊💙 Tu mes de regalo en *${platLimpia}* está por cumplirse el *${formatDateToLocal(c.fechaVencimiento)}*. ¿Qué tal la pasaste? Si deseas conservar ese perfil fijo con nosotros (o si traes otro referido para volver a ganarlo gratis 😉), me avisas con toda confianza 🙌🍿.${getCatalogSignature()}`;
+    window.open(`https://wa.me/${codigoPais}${c.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* CABECERA */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider mb-2">
+            ⭐ Programa Boca a Boca • Disney+ / HBO Max / Amazon Prime
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center">
+            <Star className="w-8 h-8 mr-3 text-amber-500 fill-amber-400" /> Agradecer Recomendados
+          </h1>
+          <p className="text-slate-500 mt-1 text-sm">
+            Premia al instante con 1 mes gratis (a elección entre Disney+, HBO Max o Amazon Prime) a cada cliente que te traiga un nuevo comprador.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm gap-1">
+          <button
+            type="button"
+            onClick={() => setSubTab('agradecer')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${subTab === 'agradecer' ? 'bg-amber-500 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            💙 1. Enviar Agradecimiento (10x)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('entregar')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${subTab === 'entregar' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🎁 2. Entregar 1 Mes Gratis
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('historial')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors ${subTab === 'historial' ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            📋 Historial ({historialPremiados.length})
+          </button>
+        </div>
+      </div>
+
+      {/* PESTAÑA 1: ENVIAR AGRADECIMIENTO (10 MENSAJES ANTI-SPAM) */}
+      {subTab === 'agradecer' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 space-y-5">
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <h3 className="font-bold text-slate-800 flex items-center">
+                  <Smartphone className="w-5 h-5 mr-2 text-amber-500" /> 1. ¿Quién nos recomendó al nuevo cliente?
+                </h3>
+                <span className="text-xs font-bold bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg border border-amber-200">
+                  ⚡ {clientesUnicos.length} clientes en memoria
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre de quien recomendó *</label>
+                  <input
+                    type="text"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none font-bold"
+                    placeholder="Ej. Michelle..."
+                    value={clientName}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+                    onChange={(e) => { setClientName(e.target.value); setShowSuggestions(true); }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Tab' || e.key === 'Enter') && showSuggestions && sugerencias.length > 0) {
+                        e.preventDefault();
+                        setClientName(sugerencias[0].nombre);
+                        setClientPhone(sugerencias[0].telefono);
+                        setShowSuggestions(false);
+                      }
+                    }}
+                  />
+                  {showSuggestions && sugerencias.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border-2 border-amber-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+                      {sugerencias.map(s => (
+                        <div
+                          key={s.id}
+                          onMouseDown={() => {
+                            setClientName(s.nombre);
+                            setClientPhone(s.telefono);
+                            setShowSuggestions(false);
+                          }}
+                          className="p-3 hover:bg-amber-50 cursor-pointer border-b border-slate-100 flex justify-between items-center"
+                        >
+                          <span className="font-bold text-slate-800">{s.nombre}</span>
+                          <span className="text-xs font-mono text-slate-500">+{s.telefono}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código de país) *</label>
+                  <input
+                    type="tel"
+                    className="w-full border-2 border-slate-200 rounded-xl p-3 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none font-mono font-bold"
+                    placeholder="999888777"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre del cliente nuevo que trajo (Opcional, para tu control interno)</label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-slate-200 rounded-xl p-2.5 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none text-sm font-medium"
+                  placeholder="Ej. Amigo de Michelle (compró 3 cuentas)"
+                  value={referidoNombre}
+                  onChange={(e) => setReferidoNombre(e.target.value)}
+                />
+              </div>
+
+              {/* Selección rápida de 1 clic */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-500">Selección rápida con 1 clic:</span>
+                  <input
+                    type="text"
+                    placeholder="Filtrar nombre..."
+                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1 outline-none focus:border-amber-500"
+                    value={searchClientRapido}
+                    onChange={(e) => setSearchClientRapido(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {listaRapida.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setClientName(c.nombre);
+                        setClientPhone(c.telefono);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                        clientPhone === c.telefono
+                          ? 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
+                      }`}
+                    >
+                      {c.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="font-black text-amber-900 text-sm">🎁 ¿Ya te respondió qué plataforma eligió?</div>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Pasa directo a entregarle su 1 mes gratis en <strong>Disney+</strong>, <strong>HBO Max</strong> o <strong>Amazon Prime</strong> y registrarlo automáticamente en tu Sheets.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSubTab('entregar')}
+                className="px-4 py-2.5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-black rounded-xl text-xs shadow flex items-center justify-center flex-shrink-0"
+              >
+                <Gift className="w-4 h-4 mr-1.5" /> Entregar 1 Mes Gratis
+              </button>
+            </div>
+          </div>
+
+          {/* VISTA PREVIA DE LOS 10 MENSAJES ANTI-SPAM */}
+          <div className="lg:col-span-5">
+            <div className="bg-[#070818] text-white p-6 rounded-3xl shadow-xl border-2 border-amber-400/50 flex flex-col h-full justify-between space-y-5">
+              <div>
+                <div className="flex justify-between items-center gap-2 mb-4">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 block">
+                      10 Mensajes Genéricos Anti-Spam
+                    </span>
+                    <h3 className="text-lg font-bold">Vista Previa WhatsApp</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMsgSeed(prev => (prev + 1) % MENSAJES_AGRADECIMIENTO_RECOMENDADOS.length)}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-amber-300 rounded-xl text-xs font-bold flex items-center border border-amber-400/30"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Rotar ({msgSeed + 1}/10)
+                  </button>
+                </div>
+
+                <div className="bg-amber-950/40 border border-amber-600/40 rounded-2xl p-4 font-sans text-xs text-amber-50 whitespace-pre-wrap max-h-[380px] overflow-y-auto leading-relaxed">
+                  {previewAgradecimiento}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleEnviarAgradecimientoWA}
+                  disabled={!clientPhone.trim() || !clientName.trim()}
+                  className="w-full py-4 bg-gradient-to-r from-amber-400 to-fuchsia-500 hover:from-amber-500 hover:to-fuchsia-600 disabled:opacity-40 text-slate-950 font-black rounded-2xl shadow-lg flex items-center justify-center text-sm sm:text-base transition-colors"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" /> Enviar Agradecimiento por WhatsApp
+                </button>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Redacción genérica ("su cuenta") válida para 1 o varias compras, ofreciendo Disney+, HBO Max o Amazon Prime + tu catálogo web.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA 2: ENTREGAR 1 MES GRATIS (DISNEY+, HBO MAX O AMAZON PRIME) */}
+      {subTab === 'entregar' && (
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-fuchsia-200 max-w-3xl space-y-5">
+          <div>
+            <h3 className="text-lg font-black text-slate-800 flex items-center">
+              <Gift className="w-5 h-5 mr-2 text-fuchsia-600" /> Activar y Entregar Premio de 1 Mes Gratis (30 Días)
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Registra la cuenta de regalo en Google Sheets con vencimiento exacto en 30 días ({formatDateToLocal(expiryOneMonthStr)}) y envía las credenciales por WhatsApp.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">Nombre de quien recibe el premio *</label>
+              <input
+                type="text"
+                className="w-full border-2 border-slate-200 rounded-xl p-3 font-bold bg-slate-50 focus:bg-white focus:border-fuchsia-500 outline-none"
+                placeholder="Ej. Michelle"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">WhatsApp (Sin código de país) *</label>
+              <input
+                type="tel"
+                className="w-full border-2 border-slate-200 rounded-xl p-3 font-mono font-bold bg-slate-50 focus:bg-white focus:border-fuchsia-500 outline-none"
+                placeholder="999888777"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value.replace(/\D/g, ''))}
+              />
+            </div>
+          </div>
+
+          {/* ELECCIÓN DE LAS 3 PLATAFORMAS PREMIADAS */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-2">Plataforma que eligió (1 Mes Gratis) *</label>
+            <div className="grid grid-cols-3 gap-3">
+              {['Disney+', 'HBO Max', 'Amazon Prime'].map(plat => (
+                <button
+                  key={plat}
+                  type="button"
+                  onClick={() => setPremioPlataforma(plat)}
+                  className={`py-3.5 px-3 rounded-2xl font-black text-xs sm:text-sm border-2 transition-colors ${
+                    premioPlataforma === plat
+                      ? 'bg-fuchsia-600 text-white border-fuchsia-600 shadow-md'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-fuchsia-50'
+                  }`}
+                >
+                  🎬 {plat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ORIGEN DE LA CUENTA */}
+          <div className="bg-fuchsia-50/60 border-2 border-fuchsia-200 rounded-2xl p-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-black text-fuchsia-900 uppercase">Origen de las Credenciales</span>
+              <div className="flex bg-white p-1 rounded-xl border border-fuchsia-200 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setModoCuenta('master')}
+                  className={`px-3 py-1 rounded-lg ${modoCuenta === 'master' ? 'bg-fuchsia-600 text-white' : 'text-slate-600'}`}
+                >
+                  Mis Cuentas Máster ({mastersOrdenadas.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoCuenta('manual')}
+                  className={`px-3 py-1 rounded-lg ${modoCuenta === 'manual' ? 'bg-fuchsia-600 text-white' : 'text-slate-600'}`}
+                >
+                  Ingreso Rápido Manual
+                </button>
+              </div>
+            </div>
+
+            {modoCuenta === 'master' ? (
+              <select
+                className="w-full border-2 border-fuchsia-200 rounded-xl p-3 font-bold bg-white text-slate-800 outline-none"
+                value={currentMaster?.id || ''}
+                onChange={(e) => {
+                  const mId = e.target.value;
+                  setSelectedMasterId(mId);
+                  setAssignedProfile(calcularPerfilLibre(mId));
+                }}
+              >
+                {mastersOrdenadas.map(m => {
+                  const ocupados = clientes.filter(c => c.idMaster === m.id && getDaysRemaining(c.fechaVencimiento) >= 0).length;
+                  const limit = parseInt(m.limitePerfiles, 10) || 5;
+                  return (
+                    <option key={m.id} value={m.id}>
+                      🎬 {m.plataforma} — {m.correo} (Libres: {Math.max(0, limit - ocupados)}/{limit})
+                    </option>
+                  );
+                })}
+              </select>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="email"
+                  placeholder="Correo de la cuenta *"
+                  className="w-full border-2 border-fuchsia-200 rounded-xl p-3 bg-white font-medium text-sm"
+                  value={manualCorreo}
+                  onChange={(e) => setManualCorreo(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Contraseña *"
+                  className="w-full border-2 border-fuchsia-200 rounded-xl p-3 bg-white font-medium text-sm"
+                  value={manualClave}
+                  onChange={(e) => setManualClave(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Nº de Perfil</label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-fuchsia-200 rounded-xl p-2.5 bg-white font-bold"
+                  value={assignedProfile}
+                  onChange={(e) => setAssignedProfile(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">PIN (Opcional)</label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-fuchsia-200 rounded-xl p-2.5 bg-white font-bold"
+                  placeholder="Vacío si no usa"
+                  value={assignedPin}
+                  onChange={(e) => setAssignedPin(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+            <div className="text-xs font-bold text-slate-600 flex items-center">
+              <Calendar className="w-4 h-4 mr-1.5 text-fuchsia-600" />
+              Vencimiento automático (1 mes): <strong className="ml-1 text-fuchsia-700">{formatDateToLocal(expiryOneMonthStr)}</strong>
+            </div>
+            <button
+              type="button"
+              onClick={handleActivarPremioUnMes}
+              disabled={syncStatus === 'sincronizando' || !clientName.trim() || !clientPhone.trim()}
+              className="px-6 py-3.5 bg-fuchsia-600 hover:bg-fuchsia-700 disabled:opacity-40 text-white font-black rounded-2xl shadow-lg flex items-center justify-center text-sm"
+            >
+              <Check className="w-5 h-5 mr-2" /> Registrar 1 Mes Gratis y Enviar Accesos
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA 3: HISTORIAL DE CLIENTES PREMIADOS POR RECOMENDACIÓN */}
+      {subTab === 'historial' && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="font-black text-slate-800 text-lg">Embajadores Premiados por Recomendación</h3>
+              <p className="text-xs text-slate-500">
+                Control de los meses gratis entregados. Al acercarse al día 30, ofréceles conservar esa segunda plataforma.
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-amber-100 text-amber-900 font-black text-xs rounded-full w-fit">
+              {historialPremiados.length} Premios Entregados
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase">
+                <tr>
+                  <th className="px-6 py-4">Cliente Recomendador</th>
+                  <th className="px-6 py-4">Premio Elegido</th>
+                  <th className="px-6 py-4">Vencimiento (30 Días)</th>
+                  <th className="px-6 py-4 text-right">Acción Día 30</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {historialPremiados.map(c => {
+                  const daysLeft = getDaysRemaining(c.fechaVencimiento);
+                  return (
+                    <tr key={c.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-800">{c.nombre}</div>
+                        <div className="text-xs text-slate-500">+{c.telefono}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-fuchsia-700">{c.servicio}</div>
+                        <div className="text-xs text-slate-500">{c.detallesLicencia}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-700">{formatDateToLocal(c.fechaVencimiento)}</div>
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${daysLeft < 0 ? 'bg-red-100 text-red-800' : daysLeft <= 4 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {daysLeft < 0 ? `Venció hace ${Math.abs(daysLeft)}d` : `Quedan ${daysLeft} días`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => enviarOfertaRenovacionPremio(c)}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs inline-flex items-center shadow-sm"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 mr-1.5" /> Ofrecer Renovar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {historialPremiados.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-10 text-center text-slate-400 font-medium">
+                      Aún no has registrado premios por recomendación. ¡Empieza agradeciendo a Michelle en la pestaña 1!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
 // 5. APLICACIÓN PRINCIPAL (ESTADOS Y LÓGICA)
 // ==========================================
 export default function App() {
@@ -4608,6 +5254,7 @@ export default function App() {
               {activeTab === 'catalogo' && <CatalogoOfertasView plantillas={plantillas} setPlantillas={setPlantillas} clientes={clientes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'regalos_vip' && <RegalosVipHboView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} plantillas={plantillas} setPlantillas={setPlantillas} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'enganche_conocidos' && <EngancheConocidosView cuentasMaster={cuentasMaster} setCuentasMaster={setCuentasMaster} clientes={clientes} setClientes={setClientes} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
+              {activeTab === 'recomendados' && <AgradecerRecomendadosView cuentasMaster={cuentasMaster} clientes={clientes} setClientes={setClientes} integrantes={integrantes} codigoPais={parametros.codigoPais} showToast={showToast} syncToSheets={syncToSheets} syncStatus={syncStatus} />}
               {activeTab === 'streaming' && <StreamingList processedClients={processedClients} cuentasMaster={cuentasMaster} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'software' && <SoftwareList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
               {activeTab === 'antivirus' && <AntivirusList processedClients={processedClients} setWaActionModal={setWaActionModal} setEditingClient={setEditingClient} setInitialCategory={setInitialCategory} setIsClientModalOpen={setIsClientModalOpen} handleDeleteClient={handleDeleteClient} />}
